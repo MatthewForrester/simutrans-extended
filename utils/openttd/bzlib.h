@@ -8,8 +8,8 @@
    This file is part of bzip2/libbzip2, a program and library for
    lossless, block-sorting data compression.
 
-   bzip2/libbzip2 version 1.0.5 of 10 December 2007
-   Copyright (C) 1996-2007 Julian Seward <jseward@bzip.org>
+   bzip2/libbzip2 version 1.0.6 of 6 September 2010
+   Copyright (C) 1996-2010 Julian Seward <jseward@bzip.org>
 
    Please read the WARNING, DISCLAIMER and PATENTS sections in the 
    README file.
@@ -75,7 +75,7 @@ typedef
 #include <stdio.h>
 #endif
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#ifdef _WIN32
 #   include <windows.h>
 #   ifdef small
       /* windows.h define small to char */
@@ -89,11 +89,6 @@ typedef
 #   define BZ_API(func) (WINAPI * func)
 #   define BZ_EXTERN
 #   endif
-#elif defined(__CYGWIN__)
-#   define BZLIB_IMPEXP
-#   define BZLIB_API __cdecl
-#   define BZ_API(func) BZLIB_IMPEXP BZLIB_API func
-#   define BZ_EXTERN extern
 #else
 #   define BZ_API(func) func
 #   define BZ_EXTERN extern
