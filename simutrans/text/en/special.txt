@@ -53,3 +53,6 @@ To remove a marker: click on the <em>Add a marker</em> tool or press <a href="ke
 To close the marker window: click the X in top left-hand corner of the window, or click <em>Cancel</em>.<br>
 <em>Tip:</em> Map co-ordinates of the cursor can be seen on right of the bottom bar under the main game window. Use <a href="keys.txt">[!]</a> to toggle the visibility of the text of markers in the main game window.
 </p>
+<p>
+<em>Replace a stop:</em> This tool can be used to change the location of one stop in the schedules of one or more convoys (for example, from 'A' to 'B'). It can also be used to change the stopping location within a stop (for example, to make rail convoys stop at a different platform). After selecting the tool, click on the stop that you wish to cease using ('A') and then on the stop that you wish to replace it with ('B'). All the convoys that previously used stop 'A' will now use stop 'B'.<br>
+</p>
