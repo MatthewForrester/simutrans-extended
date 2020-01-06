@@ -57,9 +57,7 @@ static const char cost_type[BUTTON_COUNT][64] =
 	"Refunds"
 	//, "Maxspeed"
 	//, "Way toll"
-#ifdef ACCELERATION_BUTTON
 	, "Acceleration"
-#endif
 };
 
 static const int cost_type_color[BUTTON_COUNT] =
@@ -75,9 +73,7 @@ static const int cost_type_color[BUTTON_COUNT] =
 	COL_CAR_OWNERSHIP
 //	, COL_MAXSPEED
 //	, COL_TOLL
-#ifdef ACCELERATION_BUTTON
-	, COL_YELLOW
-#endif
+	, COL_DODGER_BLUE
 };
 
 static const bool cost_type_money[BUTTON_COUNT] =
@@ -93,9 +89,7 @@ static const bool cost_type_money[BUTTON_COUNT] =
 	true
 	//, false
 	//, true
-#ifdef ACCELERATION_BUTTON
 	, false
-#endif
 };
 
 //bool convoi_info_t::route_search_in_progress=false;
@@ -216,14 +210,11 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 	}
 
 
-#ifdef ACCELERATION_BUTTON
 	//Bernd Gabriel, Sep, 24 2009: acceleration curve:
-	
 	for (int i = 0; i < MAX_MONTHS; i++)
 	{
 		physics_curves[i][0] = 0;
 	}
-
 	chart.add_curve(cost_type_color[btn], (sint64*)physics_curves, 1,0, MAX_MONTHS, cost_type_money[btn], false, true, cost_type_money[btn]*2);
 	filterButtons[btn].init(button_t::box_state, cost_type[btn], 
 			scr_coord(BUTTON1_X+(D_BUTTON_WIDTH+D_H_SPACE)*(btn%4), view.get_size().h+174+(D_BUTTON_HEIGHT+D_H_SPACE)*(btn/4)), 
@@ -233,12 +224,12 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 	filterButtons[btn].set_visible(false);
 	filterButtons[btn].pressed = false;
 	add_component(filterButtons + btn);
-#endif
+
 	statistics_height = 16 + view.get_size().h+174+(D_BUTTON_HEIGHT+D_H_SPACE)*(btn/4 + 1) - chart.get_pos().y;
 
 	add_component(&chart);
 	
-	chart_total_size = filterButtons[convoi_t::MAX_CONVOI_COST-1].get_pos().y + D_BUTTON_HEIGHT + D_V_SPACE - (chart.get_pos().y - 11);
+	chart_total_size = filterButtons[convoi_t::MAX_CONVOI_COST].get_pos().y + D_BUTTON_HEIGHT + D_V_SPACE - (chart.get_pos().y - 11);
 
 	add_component(&sort_label);
 
@@ -332,7 +323,6 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 		//Bernd Gabriel, Dec, 02 2009: common existing_convoy_t for acceleration curve and weight/speed info.
 		convoi_t &convoy = *cnv.get_rep();
 
-#ifdef ACCELERATION_BUTTON
 		//Bernd Gabriel, Sep, 24 2009: acceleration curve:
 		if (filterButtons[ACCELERATION_BUTTON].is_visible() && filterButtons[ACCELERATION_BUTTON].pressed)
 		{
@@ -348,7 +338,6 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 				physics_curves[--i][0] = speed_to_kmh(akt_speed);
 			}
 		}
-#endif
 
 		// Bernd Gabriel, 01.07.2009: show some colored texts and indicator
 		input.set_color(cnv->has_obsolete_vehicles() ? COL_DARK_BLUE : SYSCOL_TEXT);
@@ -937,7 +926,7 @@ void convoi_info_t::show_hide_statistics( bool show )
 	chart.set_visible(show);
 	set_windowsize(get_windowsize() + offset + scr_size(0,show?LINESPACE:-LINESPACE));
 	resize(scr_coord(0,0));
-	for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST;  i++  ) {
+	for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST+1;  i++  ) {
 		filterButtons[i].set_visible(toggler.pressed);
 	}
 }
@@ -1149,12 +1138,8 @@ void convoi_info_t::set_windowsize(scr_size size)
 		y += 100 + D_V_SPACE + LINESPACE + D_V_SPACE;
 		int cnt = 0;
 		const int cols = max(1, (width + D_H_SPACE) / (D_BUTTON_WIDTH + D_H_SPACE));
-		for (int btn = 0; btn < convoi_t::MAX_CONVOI_COST; btn++) 
+		for (int btn = 0; btn < convoi_t::MAX_CONVOI_COST+1; btn++) 
 		{
-			if((btn == convoi_t::MAX_CONVOI_COST - 1) && cnv->get_line().is_bound())
-			{
-				continue;
-			}
 			filterButtons[btn].set_pos(scr_coord(BUTTON_X(cnt % cols), y + BUTTON_Y(cnt/cols))); 
 			++cnt;
 		}
@@ -1222,7 +1207,7 @@ void convoi_info_t::rdwr(loadsave_t *file)
 	// window data
 	uint32 flags = 0;
 	if (file->is_saving()) {
-		for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST;  i++  ) {
+		for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST+1;  i++  ) {
 			if(  filterButtons[i].pressed  ) {
 				flags |= (1<<i);
 			}
@@ -1273,7 +1258,7 @@ void convoi_info_t::rdwr(loadsave_t *file)
 			}
 		}
 		else {
-			for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST;  i++  ) {
+			for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST+1;  i++  ) {
 				w->filterButtons[i].pressed = (flags>>i)&1;
 				if(w->filterButtons[i].pressed) {
 					w->chart.show_curve(i);

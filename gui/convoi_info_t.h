@@ -34,11 +34,8 @@
 // define ACCELERATION_BUTTON to show it and the graph.
 // do not define it and there are neither button nor graph.
 #define ACCELERATION_BUTTON convoi_t::MAX_CONVOI_COST
-#ifdef ACCELERATION_BUTTON
 #define BUTTON_COUNT (ACCELERATION_BUTTON + 1)
-#else
-#define BUTTON_COUNT MAX_CONVOI_COST
-#endif
+//#define BUTTON_COUNT MAX_CONVOI_COST
 
 class convoi_info_t : public gui_frame_t, private action_listener_t
 {
@@ -102,10 +99,8 @@ private:
 	// current pointer to route ...
 	sint32 cnv_route_index;
 
-#ifdef ACCELERATION_BUTTON
 	//Bernd Gabriel, Sep, 24 2009: acceleration curve:
 	sint64 physics_curves[MAX_MONTHS][1];
-#endif
 
 	char cnv_name[256],old_cnv_name[256];
 
