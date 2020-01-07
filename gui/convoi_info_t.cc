@@ -60,6 +60,22 @@ static const char cost_type[BUTTON_COUNT][64] =
 	, "Acceleration"
 };
 
+static const char cost_tooltip[BUTTON_COUNT][128] =
+{
+	"Free Capacity",
+	"Transported",
+	"Average speed",
+	"Comfort",
+	"Revenue",
+	"Operation",
+	"Profit",
+	"Distance",
+	"Refunds"
+	//, "Maxspeed"
+	//, "Way toll"
+	, "This chart shows how the convoy accelerates for one minute."
+};
+
 static const int cost_type_color[BUTTON_COUNT] =
 {
 	COL_FREE_CAPACITY, 
@@ -190,6 +206,7 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 	                                  +6+LINESPACE+D_V_SPACE;                  // chart x-axis labels plus space
 
 	int btn;
+	show_physics_curves = false;
 	for (btn = 0; btn < convoi_t::MAX_CONVOI_COST; btn++) {
 		chart.add_curve( cost_type_color[btn], cnv->get_finance_history(), convoi_t::MAX_CONVOI_COST, btn, MAX_MONTHS, cost_type_money[btn], false, true, cost_type_money[btn]*2 );
 		filterButtons[btn].init(button_t::box_state, cost_type[btn], 
@@ -198,6 +215,7 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 		filterButtons[btn].add_listener(this);
 		filterButtons[btn].background_color = cost_type_color[btn];
 		filterButtons[btn].set_visible(false);
+		filterButtons[btn].set_tooltip(cost_tooltip[btn]);
 		filterButtons[btn].pressed = false;
 		if((btn == convoi_t::CONVOI_REFUNDS) && cnv->get_line().is_bound())
 		{
@@ -211,17 +229,18 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 
 
 	//Bernd Gabriel, Sep, 24 2009: acceleration curve:
-	for (int i = 0; i < MAX_MONTHS; i++)
+	for (int i = 0; i < SPEED_RECORDS; i++)
 	{
 		physics_curves[i][0] = 0;
 	}
-	chart.add_curve(cost_type_color[btn], (sint64*)physics_curves, 1,0, MAX_MONTHS, cost_type_money[btn], false, true, cost_type_money[btn]*2);
+	chart.add_curve(cost_type_color[btn], (sint64*)physics_curves, 1,0, SPEED_RECORDS, cost_type_money[btn], false, true, cost_type_money[btn]*2);
 	filterButtons[btn].init(button_t::box_state, cost_type[btn], 
 			scr_coord(BUTTON1_X+(D_BUTTON_WIDTH+D_H_SPACE)*(btn%4), view.get_size().h+174+(D_BUTTON_HEIGHT+D_H_SPACE)*(btn/4)), 
 			D_BUTTON_SIZE);
 	filterButtons[btn].add_listener(this);
 	filterButtons[btn].background_color = cost_type_color[btn];
 	filterButtons[btn].set_visible(false);
+	filterButtons[btn].set_tooltip(cost_tooltip[btn]);
 	filterButtons[btn].pressed = false;
 	add_component(filterButtons + btn);
 
@@ -330,12 +349,20 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 			float32e8_t akt_v = 0;
 			sint32 akt_speed = 0;
 			sint32 sp_soll = 0;
-			int i = MAX_MONTHS;
+			int i = SPEED_RECORDS;
 			physics_curves[--i][0] = akt_speed;
+			chart.set_show_x_axis(false);
+			chart.set_dimension(SPEED_RECORDS, 10000);
 			while (i > 0)
 			{
-				convoy.calc_move(welt->get_settings(), 15 * 64, akt_speed_soll, akt_speed_soll, SINT32_MAX_VALUE, SINT32_MAX_VALUE, akt_speed, sp_soll, akt_v);
-				physics_curves[--i][0] = speed_to_kmh(akt_speed);
+				convoy.calc_move(welt->get_settings(), 15 * 40, akt_speed_soll, akt_speed_soll, SINT32_MAX_VALUE, SINT32_MAX_VALUE, akt_speed, sp_soll, akt_v);
+				if (env_t::left_to_right_graphs) {
+					physics_curves[--i][0] = speed_to_kmh(akt_speed);
+				}
+				else {
+					physics_curves[SPEED_RECORDS-i][0] = speed_to_kmh(akt_speed);
+					i--;
+				}
 			}
 		}
 
@@ -1029,18 +1056,34 @@ bool convoi_info_t::action_triggered( gui_action_creator_t *comp,value_t /* */)
 		return true;
 	}
 
+	if (comp == &filterButtons[ACCELERATION_BUTTON]) {
+		chart.show_curve(ACCELERATION_BUTTON);
+		filterButtons[ACCELERATION_BUTTON].pressed = !filterButtons[ACCELERATION_BUTTON].pressed;
+		show_physics_curves = filterButtons[ACCELERATION_BUTTON].pressed ? true : false;
+	}
 	for ( int i = 0; i<BUTTON_COUNT; i++) {
-		if (comp == &filterButtons[i]) {
+		if (comp == &filterButtons[i] && i != ACCELERATION_BUTTON) {
+			if (show_physics_curves) {
+				show_physics_curves = false;
+				filterButtons[ACCELERATION_BUTTON].pressed = false;
+			}
 			filterButtons[i].pressed = !filterButtons[i].pressed;
-			if(filterButtons[i].pressed) {
-				chart.show_curve(i);
-			}
-			else {
-				chart.hide_curve(i);
-			}
-
-			return true;
 		}
+		if (show_physics_curves && i != ACCELERATION_BUTTON) {
+			filterButtons[i].pressed = false;
+		}
+
+		if(filterButtons[i].pressed) {
+			chart.show_curve(i);
+		}
+		else {
+			chart.hide_curve(i);
+		}
+	}
+	if (!show_physics_curves) {
+		chart.set_dimension(12, 10000);
+		chart.set_show_x_axis(true);
+		return true;
 	}
 
 	return false;
