@@ -97,6 +97,11 @@ public:
 
 	void set_show_x_axis(bool yesno) { show_x_axis = yesno; }
 
+	// Label display interval
+	void set_x_label_span(uint8 span = 1) { x_label_span = span; }
+	// x-axis number increase factor. dx=2 then 0, 2, 4, 6...
+	void set_x_axis_span(sint32 dx = 1) { x_axis_span = dx; }
+
 	void set_show_y_axis(bool yesno) { show_y_axis = yesno; }
 	
 	void set_ltr(bool yesno) { ltr = yesno; }
@@ -144,6 +149,8 @@ private:
 	int x_elements, y_elements;
 
 	int seed;
+	uint8 x_label_span;
+	sint32 x_axis_span;
 
 	scr_coord tooltipcoord;
 

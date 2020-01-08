@@ -37,6 +37,8 @@ gui_chart_t::gui_chart_t() : gui_component_t()
 	show_y_axis = true;
 	ltr = false;
 	x_elements = 0;
+	x_label_span = 1;
+	x_axis_span = 1;
 
 	// Hajo: transparent by default
 	background = -1;
@@ -164,7 +166,7 @@ void gui_chart_t::draw(scr_coord offset)
 		const COLOR_VAL line_color = (i%2) ? SYSCOL_CHART_LINES_ODD : SYSCOL_CHART_LINES_EVEN;
 		if(  show_x_axis  ) {
 			// display x-axis
-			sprintf( digit, "%i", abs(seed - j) );
+			sprintf( digit, j % x_label_span == 0 ? "%i" : "",  abs(seed - (j*x_axis_span)));
 			scr_coord_val x =  x0 - (seed != j ? (int)(2 * log( (double)abs(seed - j) )) : 0);
 			if(  x > x_last  ) {
 				x_last = x + display_proportional_clip( x, offset.y + size.h + 6, digit, ALIGN_LEFT, line_color, true );
