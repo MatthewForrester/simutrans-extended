@@ -73,7 +73,7 @@ static const char cost_tooltip[BUTTON_COUNT][128] =
 	"Refunds"
 	//, "Maxspeed"
 	//, "Way toll"
-	, "This chart shows how the convoy accelerates for one minute."
+	, "This chart shows constant acceleration of convoy in two minutes after departing."
 };
 
 static const int cost_type_color[BUTTON_COUNT] =
@@ -350,12 +350,24 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 			sint32 akt_speed = 0;
 			sint32 sp_soll = 0;
 			int i = SPEED_RECORDS;
+			long delta_t = 1000;
+			sint32 delta_s = (welt->get_settings().ticks_to_seconds(delta_t)).to_sint32();
 			physics_curves[--i][0] = akt_speed;
-			chart.set_show_x_axis(false);
+
+			chart.set_x_label_span(4);
+			if (env_t::left_to_right_graphs) {
+				chart.set_seed(delta_s * (SPEED_RECORDS-1));
+				chart.set_x_axis_span(delta_s);
+			}
+			else {
+				chart.set_seed(0);
+				chart.set_x_axis_span(0 - delta_s);
+			}
+
 			chart.set_dimension(SPEED_RECORDS, 10000);
 			while (i > 0)
 			{
-				convoy.calc_move(welt->get_settings(), 15 * 40, akt_speed_soll, akt_speed_soll, SINT32_MAX_VALUE, SINT32_MAX_VALUE, akt_speed, sp_soll, akt_v);
+				convoy.calc_move(welt->get_settings(), delta_t, akt_speed_soll, akt_speed_soll, SINT32_MAX_VALUE, SINT32_MAX_VALUE, akt_speed, sp_soll, akt_v);
 				if (env_t::left_to_right_graphs) {
 					physics_curves[--i][0] = speed_to_kmh(akt_speed);
 				}
@@ -1081,8 +1093,12 @@ bool convoi_info_t::action_triggered( gui_action_creator_t *comp,value_t /* */)
 		}
 	}
 	if (!show_physics_curves) {
-		chart.set_dimension(12, 10000);
+		// init chart settings
+		chart.set_dimension(MAX_MONTHS, 10000);
 		chart.set_show_x_axis(true);
+		chart.set_seed(0);
+		chart.set_x_label_span(1);
+		chart.set_x_axis_span(1);
 		return true;
 	}
 
