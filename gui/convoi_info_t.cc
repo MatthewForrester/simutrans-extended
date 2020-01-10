@@ -63,20 +63,19 @@ static const char cost_type[BUTTON_COUNT][64] =
 
 static const char cost_tooltip[BUTTON_COUNT][128] =
 {
-	//FIXME!
-	"ci_tooltip_free_capacity",
-	"ci_tooltip_transported",
-	"ci_tooltip_average_speed",
-	"ci_tooltip_comfort",
-	"ci_tooltip_revenue",
-	"ci_tooltip_operation",
-	"ci_tooltip_profit",
-	"ci_tooltip_distance",
+	"Shows the proportion of the convoy that is running empty. This might be negative if the convoy is regularly overcrowded",
+	"Shows the quantity of goods, passengers or mail transported",
+	"Shows the average speed of the convoy",
+	"Shows the average comfort of vehicles in the convoy, adjusted for overcrowding and any catering present in the convoy",
+	"Shows the gross income received from this convoy's transport activities",
+	"Shows the costs of operating this convoy",
+	"Shows the net profit earned by this convoy (total revenue less total costs)",
+	"Shows the total distance (in km) that this convoy has travelled",
 	"ci_tooltip_refunds"
 	//, "Maxspeed"
 	//, "Way toll"
-	, "This chart shows constant acceleration of convoy in two minutes after departing."
-	, "This chart shows tractive effort and Running resistance in [N]. The green line indicates running resistance."
+	, "Shows constant acceleration of convoy in two minutes after departing."
+	, "Shows tractive effort and Running resistance in [N]. The green line indicates running resistance."
 };
 
 static const int cost_type_color[BUTTON_COUNT+1] =
