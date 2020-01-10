@@ -58,25 +58,28 @@ static const char cost_type[BUTTON_COUNT][64] =
 	//, "Maxspeed"
 	//, "Way toll"
 	, "Acceleration"
+	, "Tractive force"
 };
 
 static const char cost_tooltip[BUTTON_COUNT][128] =
 {
-	"Free Capacity",
-	"Transported",
-	"Average speed",
-	"Comfort",
-	"Revenue",
-	"Operation",
-	"Profit",
-	"Distance",
-	"Refunds"
+	//FIXME!
+	"ci_tooltip_free_capacity",
+	"ci_tooltip_transported",
+	"ci_tooltip_average_speed",
+	"ci_tooltip_comfort",
+	"ci_tooltip_revenue",
+	"ci_tooltip_operation",
+	"ci_tooltip_profit",
+	"ci_tooltip_distance",
+	"ci_tooltip_refunds"
 	//, "Maxspeed"
 	//, "Way toll"
 	, "This chart shows constant acceleration of convoy in two minutes after departing."
+	, "This chart shows tractive effort and Running resistance in [N]. The green line indicates running resistance."
 };
 
-static const int cost_type_color[BUTTON_COUNT] =
+static const int cost_type_color[BUTTON_COUNT+1] =
 {
 	COL_FREE_CAPACITY, 
 	COL_TRANSPORTED,
@@ -90,6 +93,8 @@ static const int cost_type_color[BUTTON_COUNT] =
 //	, COL_MAXSPEED
 //	, COL_TOLL
 	, COL_DODGER_BLUE
+	, COL_MAGENTA
+	, COL_DARK_GREEN // +1 for resistance curve
 };
 
 static const bool cost_type_money[BUTTON_COUNT] =
@@ -105,6 +110,7 @@ static const bool cost_type_money[BUTTON_COUNT] =
 	true
 	//, false
 	//, true
+	, false
 	, false
 };
 
@@ -206,7 +212,6 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 	                                  +6+LINESPACE+D_V_SPACE;                  // chart x-axis labels plus space
 
 	int btn;
-	show_physics_curves = false;
 	for (btn = 0; btn < convoi_t::MAX_CONVOI_COST; btn++) {
 		chart.add_curve( cost_type_color[btn], cnv->get_finance_history(), convoi_t::MAX_CONVOI_COST, btn, MAX_MONTHS, cost_type_money[btn], false, true, cost_type_money[btn]*2 );
 		filterButtons[btn].init(button_t::box_state, cost_type[btn], 
@@ -228,27 +233,35 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 	}
 
 
-	//Bernd Gabriel, Sep, 24 2009: acceleration curve:
-	for (int i = 0; i < SPEED_RECORDS; i++)
+	//Bernd Gabriel, Sep, 24 2009: initialize acceleration curves:
+	for (int j = 0; j < MAX_PHYSICS_CURVE; j++)
 	{
-		physics_curves[i][0] = 0;
+		for (int i = 0; i < SPEED_RECORDS; i++)
+		{
+			physics_curves[i][j] = 0;
+		}
+		chart.add_curve(cost_type_color[btn], (sint64*)physics_curves, MAX_PHYSICS_CURVE, j, SPEED_RECORDS, cost_type_money[btn], false, true, cost_type_money[btn] * 2);
+		if (j < 2) {
+			filterButtons[btn].init(button_t::box_state, cost_type[btn],
+				scr_coord(BUTTON1_X + (D_BUTTON_WIDTH + D_H_SPACE)*(btn % 4), offset_below_chart + (D_BUTTON_HEIGHT + D_V_SPACE)*(btn / 4)),
+				D_BUTTON_SIZE);
+			//scr_coord(BUTTON1_X + (D_BUTTON_WIDTH + D_H_SPACE)*((btn+1) % 4), offset_below_chart + (D_BUTTON_HEIGHT + D_H_SPACE)*((btn+1) / 4)),
+				//D_BUTTON_SIZE);
+			filterButtons[btn].add_listener(this);
+			filterButtons[btn].background_color = cost_type_color[btn];
+			filterButtons[btn].set_visible(false);
+			filterButtons[btn].set_tooltip(cost_tooltip[btn]);
+			filterButtons[btn].pressed = false;
+			add_component(filterButtons + btn);
+		}
+		btn++;
 	}
-	chart.add_curve(cost_type_color[btn], (sint64*)physics_curves, 1,0, SPEED_RECORDS, cost_type_money[btn], false, true, cost_type_money[btn]*2);
-	filterButtons[btn].init(button_t::box_state, cost_type[btn], 
-			scr_coord(BUTTON1_X+(D_BUTTON_WIDTH+D_H_SPACE)*(btn%4), view.get_size().h+174+(D_BUTTON_HEIGHT+D_H_SPACE)*(btn/4)), 
-			D_BUTTON_SIZE);
-	filterButtons[btn].add_listener(this);
-	filterButtons[btn].background_color = cost_type_color[btn];
-	filterButtons[btn].set_visible(false);
-	filterButtons[btn].set_tooltip(cost_tooltip[btn]);
-	filterButtons[btn].pressed = false;
-	add_component(filterButtons + btn);
 
 	statistics_height = 16 + view.get_size().h+174+(D_BUTTON_HEIGHT+D_H_SPACE)*(btn/4 + 1) - chart.get_pos().y;
 
 	add_component(&chart);
 	
-	chart_total_size = filterButtons[convoi_t::MAX_CONVOI_COST].get_pos().y + D_BUTTON_HEIGHT + D_V_SPACE - (chart.get_pos().y - 11);
+	chart_total_size = filterButtons[BUTTON_COUNT-1].get_pos().y + D_BUTTON_HEIGHT + D_V_SPACE - (chart.get_pos().y - 11);
 
 	add_component(&sort_label);
 
@@ -354,7 +367,6 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 			sint32 delta_s = (welt->get_settings().ticks_to_seconds(delta_t)).to_sint32();
 			physics_curves[--i][0] = akt_speed;
 
-			chart.set_x_label_span(4);
 			if (env_t::left_to_right_graphs) {
 				chart.set_seed(delta_s * (SPEED_RECORDS-1));
 				chart.set_x_axis_span(delta_s);
@@ -364,7 +376,6 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 				chart.set_x_axis_span(0 - delta_s);
 			}
 
-			chart.set_dimension(SPEED_RECORDS, 10000);
 			while (i > 0)
 			{
 				convoy.calc_move(welt->get_settings(), delta_t, akt_speed_soll, akt_speed_soll, SINT32_MAX_VALUE, SINT32_MAX_VALUE, akt_speed, sp_soll, akt_v);
@@ -374,6 +385,30 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 				else {
 					physics_curves[SPEED_RECORDS-i][0] = speed_to_kmh(akt_speed);
 					i--;
+				}
+			}
+		}
+
+		if (filterButtons[TRACTIVE_FORCE_BUTTON].is_visible() && filterButtons[TRACTIVE_FORCE_BUTTON].pressed)
+		{
+			uint32 empty_weight = convoy.get_vehicle_summary().weight;
+			const sint32 max_speed = convoy.calc_max_speed(weight_summary_t(empty_weight, convoy.get_current_friction()));
+			const uint16 display_interval = (max_speed + SPEED_RECORDS - 1)/ SPEED_RECORDS;
+			float32e8_t rolling_resistance = cnv->get_adverse_summary().fr;
+
+			if (env_t::left_to_right_graphs) {
+				chart.set_seed(max_speed);
+				chart.set_x_axis_span(display_interval);
+			}
+			else {
+				chart.set_seed(0);
+				chart.set_x_axis_span(0 - display_interval);
+			}
+
+			for (int i = 0; i < max_speed; i++) {
+				if (i % display_interval == 0) {
+					physics_curves[i/display_interval][1] = cnv->get_force_summary(i * kmh2ms);
+					physics_curves[i/display_interval][2] = cnv->calc_speed_holding_force(i * kmh2ms, rolling_resistance).to_sint32();
 				}
 			}
 		}
@@ -965,10 +1000,52 @@ void convoi_info_t::show_hide_statistics( bool show )
 	chart.set_visible(show);
 	set_windowsize(get_windowsize() + offset + scr_size(0,show?LINESPACE:-LINESPACE));
 	resize(scr_coord(0,0));
-	for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST+1;  i++  ) {
+	for(  int i = 0;  i < BUTTON_COUNT;  i++  ) {
 		filterButtons[i].set_visible(toggler.pressed);
 	}
 }
+
+// Initializes when chart mode switches for different x-axis displays. @ Ranran 2020
+void convoi_info_t::init_chart_mode(enum chart_mode_t mode)
+{
+	switch(mode) {
+		case convoy_acceleration:
+			for (int i = 0; i < BUTTON_COUNT; i++) {
+				if (i == ACCELERATION_BUTTON) {
+					chart.show_curve(i);
+					continue;
+				}
+				chart.hide_curve(i);
+				filterButtons[i].pressed = false;
+			}
+			chart.hide_curve(TRACTIVE_FORCE_BUTTON+1);
+			chart.set_dimension(SPEED_RECORDS, 10000);
+			chart.set_x_label_span(4);
+			break;
+		case convoy_force:
+			for (int i = 0; i < BUTTON_COUNT - 1; i++) {
+				chart.hide_curve(i);
+				filterButtons[i].pressed = false;
+			}
+			chart.show_curve(TRACTIVE_FORCE_BUTTON);
+			chart.show_curve(TRACTIVE_FORCE_BUTTON + 1);
+			chart.set_dimension(SPEED_RECORDS, 10000);
+			chart.set_x_label_span(4);
+			break;
+		default:
+			chart.hide_curve(ACCELERATION_BUTTON);
+			chart.hide_curve(TRACTIVE_FORCE_BUTTON);
+			chart.hide_curve(TRACTIVE_FORCE_BUTTON + 1);
+			filterButtons[ACCELERATION_BUTTON].pressed = false;
+			filterButtons[TRACTIVE_FORCE_BUTTON].pressed = false;
+			chart.set_dimension(MAX_MONTHS, 10000);
+			chart.set_seed(0);
+			chart.set_x_label_span();
+			chart.set_x_axis_span(); 
+			break;
+	}
+}
+
 
 /**
  * This method is called if an action is triggered
@@ -1068,38 +1145,31 @@ bool convoi_info_t::action_triggered( gui_action_creator_t *comp,value_t /* */)
 		return true;
 	}
 
-	if (comp == &filterButtons[ACCELERATION_BUTTON]) {
-		chart.show_curve(ACCELERATION_BUTTON);
-		filterButtons[ACCELERATION_BUTTON].pressed = !filterButtons[ACCELERATION_BUTTON].pressed;
-		show_physics_curves = filterButtons[ACCELERATION_BUTTON].pressed ? true : false;
-	}
-	for ( int i = 0; i<BUTTON_COUNT; i++) {
-		if (comp == &filterButtons[i] && i != ACCELERATION_BUTTON) {
-			if (show_physics_curves) {
-				show_physics_curves = false;
-				filterButtons[ACCELERATION_BUTTON].pressed = false;
-			}
+	// charts
+	for (int i = 0; i < BUTTON_COUNT; i++) {
+		if (comp == &filterButtons[i]) {
 			filterButtons[i].pressed = !filterButtons[i].pressed;
-		}
-		if (show_physics_curves && i != ACCELERATION_BUTTON) {
-			filterButtons[i].pressed = false;
-		}
+			if (filterButtons[i].pressed) {
+				chart.show_curve(i);
+				if (i == ACCELERATION_BUTTON) {
+					init_chart_mode(convoy_acceleration);
+				}
+				else if (i == TRACTIVE_FORCE_BUTTON) {
+					init_chart_mode(convoy_force);
+				}
+				else {
+					init_chart_mode(convoy_finance);
+				}
+			}
+			else {
+				chart.hide_curve(i);
+				if (i == TRACTIVE_FORCE_BUTTON) {
+					chart.hide_curve(i+1);
+				}
+			}
 
-		if(filterButtons[i].pressed) {
-			chart.show_curve(i);
+			return true;
 		}
-		else {
-			chart.hide_curve(i);
-		}
-	}
-	if (!show_physics_curves) {
-		// init chart settings
-		chart.set_dimension(MAX_MONTHS, 10000);
-		chart.set_show_x_axis(true);
-		chart.set_seed(0);
-		chart.set_x_label_span(1);
-		chart.set_x_axis_span(1);
-		return true;
 	}
 
 	return false;
@@ -1197,7 +1267,7 @@ void convoi_info_t::set_windowsize(scr_size size)
 		y += 100 + D_V_SPACE + LINESPACE + D_V_SPACE;
 		int cnt = 0;
 		const int cols = max(1, (width + D_H_SPACE) / (D_BUTTON_WIDTH + D_H_SPACE));
-		for (int btn = 0; btn < convoi_t::MAX_CONVOI_COST+1; btn++) 
+		for (int btn = 0; btn < BUTTON_COUNT; btn++)
 		{
 			filterButtons[btn].set_pos(scr_coord(BUTTON_X(cnt % cols), y + BUTTON_Y(cnt/cols))); 
 			++cnt;
@@ -1266,7 +1336,7 @@ void convoi_info_t::rdwr(loadsave_t *file)
 	// window data
 	uint32 flags = 0;
 	if (file->is_saving()) {
-		for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST+1;  i++  ) {
+		for(  int i = 0;  i < BUTTON_COUNT;  i++  ) {
 			if(  filterButtons[i].pressed  ) {
 				flags |= (1<<i);
 			}
@@ -1317,7 +1387,10 @@ void convoi_info_t::rdwr(loadsave_t *file)
 			}
 		}
 		else {
-			for(  int i = 0;  i < convoi_t::MAX_CONVOI_COST+1;  i++  ) {
+			for(  int i = 0;  i < BUTTON_COUNT;  i++  ) {
+				if (((file->get_extended_version() >= 14 && file->get_extended_revision() >= 15) || file->get_extended_version() >= 15) && i == convoi_t::MAX_CONVOI_COST) {
+					break;
+				}
 				w->filterButtons[i].pressed = (flags>>i)&1;
 				if(w->filterButtons[i].pressed) {
 					w->chart.show_curve(i);
