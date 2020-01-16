@@ -162,3 +162,4 @@ text/en/Simutrans-Extended.vcxproj.lnk
 text/all-help-file-names
 
 /Simutrans-Ex/nbproject/private/
+simversion.h
