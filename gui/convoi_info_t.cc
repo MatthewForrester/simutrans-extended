@@ -1387,7 +1387,7 @@ void convoi_info_t::rdwr(loadsave_t *file)
 		}
 		else {
 			for(  int i = 0;  i < BUTTON_COUNT;  i++  ) {
-				if (((file->get_extended_version() >= 14 && file->get_extended_revision() >= 15) || file->get_extended_version() >= 15) && i == convoi_t::MAX_CONVOI_COST) {
+				if (((file->get_extended_version() >= 14 && file->get_extended_revision() >= 16) || file->get_extended_version() >= 15) && i == convoi_t::MAX_CONVOI_COST) {
 					break;
 				}
 				w->filterButtons[i].pressed = (flags>>i)&1;
