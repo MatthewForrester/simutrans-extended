@@ -1268,7 +1268,7 @@ void convoi_info_t::set_windowsize(scr_size size)
 		const int cols = max(1, (width + D_H_SPACE) / (D_BUTTON_WIDTH + D_H_SPACE));
 		for (int btn = 0; btn < BUTTON_COUNT; btn++)
 		{
-			filterButtons[btn].set_pos(scr_coord(BUTTON_X(cnt % cols), y + BUTTON_Y(cnt/cols))); 
+			filterButtons[btn].set_pos(scr_coord(BUTTON_X(cnt % cols) + D_MARGIN_LEFT, y + BUTTON_Y(cnt/cols)));
 			++cnt;
 		}
 		const int rows = (cnt - 1) / cols + 1;
