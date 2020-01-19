@@ -1326,14 +1326,9 @@ void vehicle_t::remove_stale_cargo()
 
 void vehicle_t::play_sound() const
 {
-	if(  desc->get_sound() >= 0  &&  !welt->is_fast_forward() && sound_ticks < welt->get_ticks() )
+	if(desc->get_sound() >= 0 && !welt->is_fast_forward())
 	{
-		if(welt->play_sound_area_clipped(get_pos().get_2d(), desc->get_sound()))
-		{
-			// Only reset the counter if the sound can be heard.
-			const sint64 sound_offset = sim_async_rand(10000) + 5000;
-			sound_ticks = welt->get_ticks() + sound_offset;
-		}
+		welt->play_sound_area_clipped(get_pos().get_2d(), desc->get_sound(), get_waytype());
 	}
 }
 
@@ -1453,8 +1448,6 @@ vehicle_t::vehicle_t(koord3d pos, const vehicle_desc_t* desc, player_t* player) 
 		class_reassignments[i] = i;
 	}
 }
-
-sint64 vehicle_t::sound_ticks = 0;
 
 #ifdef INLINE_OBJ_TYPE
 vehicle_t::vehicle_t(typ type) :
@@ -3956,9 +3949,11 @@ bool road_vehicle_t::can_enter_tile(const grund_t *gr, sint32 &restart_speed, ui
 				// road is two-way and overtaking is allowed on the stricter condition.
 				if(  obj->is_stuck()  ) {
 					// end of traffic jam, but no stuck message, because previous vehicle is stuck too
+					// Not giving stuck messages here is a problem as there might be a circular jam, which is
+					// actually a common case. Do not reset waiting here.
 					restart_speed = 0;
 					//cnv->set_tiles_overtaking(0);
-					cnv->reset_waiting();
+					//cnv->reset_waiting();
 				}
 				else {
 					if(  test_index == route_index + 1u  ) {
@@ -4773,7 +4768,7 @@ sint32 rail_vehicle_t::activate_choose_signal(const uint16 start_block, uint16 &
 		{
 			signal_t *sig = gr->find<signal_t>(1);
  			ribi_t::ribi ribi = ribi_type(route->at(max(1u, modified_route_index) - 1u));
-			if(!(gr->get_weg(get_waytype())->get_ribi_maske() & ribi)) // Check that the signal is facing in the right direction.
+			if(!(gr->get_weg(get_waytype())->get_ribi_maske() & ribi) && gr->get_weg(get_waytype())->get_ribi_maske() != ribi_t::backward(ribi)) // Check that the signal is facing in the right direction.
 			{
 				if(sig && sig->get_desc()->is_choose_sign())
 				{
@@ -4983,8 +4978,21 @@ bool rail_vehicle_t::can_enter_tile(const grund_t *gr, sint32 &restart_speed, ui
 
 	if (signal_current && signal_current->get_desc()->get_working_method() == one_train_staff && cnv->get_state() == convoi_t::DRIVING && signal_current->get_state() != signal_t::call_on)
 	{
-		// This should only be encountered when a train comes upon a one train staff cabinet having previously stopped at a double block signal.
-		set_working_method(one_train_staff);
+		// This should only be encountered when a train comes upon a one train staff cabinet having previously stopped at a double block signal or having started from a station.
+		if (working_method == drive_by_sight)
+		{
+			cnv->set_last_signal_pos(koord3d::invalid); 
+			const bool ok = block_reserver(cnv->get_route(), max(route_index, 1), welt->get_settings().get_sighting_distance_tiles(), next_signal, 0, true, false);
+			if (!ok)
+			{
+				restart_speed = 0;
+				return false;
+			}
+		}
+		else
+		{
+			set_working_method(one_train_staff);
+		}
 	}
 
 	if((destination_is_nonreversing_waypoint || starting_from_stand) && working_method != one_train_staff && (signal_current || this_halt_has_station_signals) && (this_halt_has_station_signals || !signal_current->get_desc()->get_permissive() || signal_current->get_no_junctions_to_next_signal() == false))
@@ -5093,9 +5101,9 @@ bool rail_vehicle_t::can_enter_tile(const grund_t *gr, sint32 &restart_speed, ui
 		{
 			cnv->set_next_stop_index(next_signal);
 		}
-		if (working_method != one_train_staff && signal_current && (signal_current->get_desc()->get_working_method() != one_train_staff || signal_current->get_pos() != cnv->get_last_signal_pos()))
+		if (working_method != one_train_staff && signal_current && (signal_current->get_desc()->get_working_method() != one_train_staff || (signal_current->get_pos() != cnv->get_last_signal_pos() && signal_current->get_pos() == get_pos())))
 		{
-			if (working_method == token_block && signal_current->get_desc()->get_working_method() == drive_by_sight)
+			if (working_method == token_block && signal_current->get_desc()->get_working_method() != token_block)
 			{
 				clear_token_reservation(w_current->get_signal(ribi), this, w_current);
 			}
@@ -5546,7 +5554,14 @@ bool rail_vehicle_t::can_enter_tile(const grund_t *gr, sint32 &restart_speed, ui
 					{
 						if(allow_block_reserver)
 						{
-							cnv->set_next_stop_index(next_signal);
+							if ((next_signal == next_block) && (next_signal == route_index - 1))
+							{
+								return false;
+							}
+							else
+							{
+								cnv->set_next_stop_index(next_signal);
+							}
 						}
 						else
 						{
@@ -6048,7 +6063,7 @@ sint32 rail_vehicle_t::block_reserver(route_t *route, uint16 start_index, uint16
 					}
 					if(working_method == drive_by_sight && sch1->can_reserve(cnv->self, ribi) && (signal->get_pos() != cnv->get_last_signal_pos() || signal->get_desc()->get_working_method() != one_train_staff))
 					{
-						if (signal->get_desc()->get_working_method() == one_train_staff && i > start_index)
+						if (signal->get_desc()->get_working_method() == one_train_staff && pos != get_pos())
 						{
 							// Do not try to reserve beyond a one train staff cabinet unless the train is at the cabinet.
 							next_signal_index = i;
@@ -6517,11 +6532,11 @@ sint32 rail_vehicle_t::block_reserver(route_t *route, uint16 start_index, uint16
 							koord3d last_signalbox_pos = last_signal ? last_signal->get_signalbox() : koord3d::invalid;
 							if(signalbox_last_distant_signal == koord3d::invalid
 								&& i - start_index <= modified_sighting_distance_tiles
-								&& (last_signalbox_pos == koord3d::invalid
+								&& ((last_signalbox_pos == koord3d::invalid
 								 || last_signalbox_pos != signal->get_signalbox())
 								 || ((!last_signal || !signal->get_desc()->get_intermediate_block())
 								 || signal->get_desc()->get_intermediate_block() ^ last_signal->get_desc()->get_intermediate_block()) // Cannot be two intermediate blocks in a row.
-								&& (pre_signals.empty() || first_stop_signal_index == INVALID_INDEX))
+								&& (pre_signals.empty() || first_stop_signal_index == INVALID_INDEX)))
 							{
 								pre_signals.append(signal);
 								last_pre_signal_index = i;
@@ -7890,21 +7905,24 @@ void water_vehicle_t::enter_tile(grund_t* gr)
 bool water_vehicle_t::check_next_tile(const grund_t *bd) const
 {
 	const weg_t *w = bd->get_weg(water_wt);
-	if (w)
+	if (cnv->has_tall_vehicles())
 	{
-		if (w->is_height_restricted() && cnv->has_tall_vehicles())
+		if (w)
 		{
-			cnv->suche_neue_route();
-			return false;
+			if (w->is_height_restricted())
+			{
+				cnv->suche_neue_route();
+				return false;
+			}
 		}
-	}
-	else
-	{
-		// Check for low bridges on open water
-		const grund_t* gr_above = world()->lookup(get_pos() + koord3d(0, 0, 1));
-		if (env_t::pak_height_conversion_factor == 2 && gr_above && gr_above->get_weg_nr(0))
+		else
 		{
-			return false;
+			// Check for low bridges on open water
+			const grund_t* gr_above = world()->lookup(get_pos() + koord3d(0, 0, 1));
+			if (env_t::pak_height_conversion_factor == 2 && gr_above && gr_above->get_weg_nr(0))
+			{
+				return false;
+			}
 		}
 	}
 
