@@ -219,16 +219,6 @@ private:
 		return get_force_summary(abs(speed));
 	}
 
-	/**
-	 * Get force in N that holds the given speed v or maximum available force, what ever is lesser.
-	 * Frs = Fr + Fs
-	 * Fr: roll resistance, always > 0 
-	 * Fs: slope force/resistance, downhill: Fs < 0 (force), uphill: Fs > 0 (resistance)
-	 */
-	inline float32e8_t calc_speed_holding_force(const float32e8_t &v /* in m/s */, const float32e8_t &Frs /* in N */)
-	{
-		return min(get_force(v), adverse.cf * v * v + Frs); /* in N */
-	}
 protected:
 	vehicle_summary_t vehicle_summary;
 	adverse_summary_t adverse;
@@ -314,7 +304,18 @@ public:
 	 */
 	virtual sint16 get_current_friction() = 0;
 
-	/** 
+	/**
+	 * Get force in N that holds the given speed v or maximum available force, what ever is lesser.
+	 * Frs = Fr + Fs
+	 * Fr: roll resistance, always > 0
+	 * Fs: slope force/resistance, downhill: Fs < 0 (force), uphill: Fs > 0 (resistance)
+	 */
+	inline float32e8_t calc_speed_holding_force(const float32e8_t &v /* in m/s */, const float32e8_t &Frs /* in N */)
+	{
+		return min(get_force(v), adverse.cf * v * v + Frs); /* in N */
+	}
+
+	/**
 	 * Get maximum possible speed of convoy in km/h according to weight, power/force, inclination, etc.
 	 * Depends on vehicle, adverse and given weight.
 	 */
