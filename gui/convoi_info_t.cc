@@ -57,8 +57,10 @@ static const char cost_type[BUTTON_COUNT][64] =
 	"Refunds"
 	//, "Maxspeed"
 	//, "Way toll"
+#ifdef ACCELERATION_BUTTON
 	, "Acceleration"
 	, "Tractive force"
+#endif
 };
 
 static const char cost_tooltip[BUTTON_COUNT][128] =
@@ -74,11 +76,14 @@ static const char cost_tooltip[BUTTON_COUNT][128] =
 	"ci_tooltip_refunds"
 	//, "Maxspeed"
 	//, "Way toll"
+#ifdef ACCELERATION_BUTTON
 	, "Shows constant acceleration of convoy in two minutes after departing."
 	, "Shows tractive effort and Running resistance in [N]. The green line indicates running resistance."
+#endif
 };
 
-static const int cost_type_color[BUTTON_COUNT+1] =
+
+static const int cost_type_color[BUTTON_COUNT+ADDITIONAL_CHART] =
 {
 	COL_FREE_CAPACITY, 
 	COL_TRANSPORTED,
@@ -91,9 +96,11 @@ static const int cost_type_color[BUTTON_COUNT+1] =
 	COL_CAR_OWNERSHIP
 //	, COL_MAXSPEED
 //	, COL_TOLL
+#ifdef ACCELERATION_BUTTON
 	, COL_DODGER_BLUE
 	, COL_MAGENTA
 	, COL_DARK_GREEN // +1 for resistance curve
+#endif
 };
 
 static const bool cost_type_money[BUTTON_COUNT] =
@@ -109,8 +116,10 @@ static const bool cost_type_money[BUTTON_COUNT] =
 	true
 	//, false
 	//, true
+#ifdef ACCELERATION_BUTTON
 	, false
 	, false
+#endif
 };
 
 //bool convoi_info_t::route_search_in_progress=false;
@@ -231,7 +240,7 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 		}
 	}
 
-
+#ifdef ACCELERATION_BUTTON
 	//Bernd Gabriel, Sep, 24 2009: initialize acceleration curves:
 	for (int j = 0; j < MAX_PHYSICS_CURVE; j++)
 	{
@@ -255,6 +264,7 @@ convoi_info_t::convoi_info_t(convoihandle_t cnv)
 		}
 		btn++;
 	}
+#endif
 
 	statistics_height = 16 + view.get_size().h+174+(D_BUTTON_HEIGHT+D_H_SPACE)*(btn/4 + 1) - chart.get_pos().y;
 
@@ -354,6 +364,7 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 		//Bernd Gabriel, Dec, 02 2009: common existing_convoy_t for acceleration curve and weight/speed info.
 		convoi_t &convoy = *cnv.get_rep();
 
+#ifdef ACCELERATION_BUTTON
 		//Bernd Gabriel, Sep, 24 2009: acceleration curve:
 		if (filterButtons[ACCELERATION_BUTTON].is_visible() && filterButtons[ACCELERATION_BUTTON].pressed)
 		{
@@ -411,6 +422,7 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 				}
 			}
 		}
+#endif
 
 		// Bernd Gabriel, 01.07.2009: show some colored texts and indicator
 		input.set_color(cnv->has_obsolete_vehicles() ? COL_DARK_BLUE : SYSCOL_TEXT);
@@ -1008,6 +1020,7 @@ void convoi_info_t::show_hide_statistics( bool show )
 void convoi_info_t::init_chart_mode(enum chart_mode_t mode)
 {
 	switch(mode) {
+#ifdef ACCELERATION_BUTTON
 		case convoy_acceleration:
 			for (int i = 0; i < BUTTON_COUNT; i++) {
 				if (i == ACCELERATION_BUTTON) {
@@ -1031,12 +1044,15 @@ void convoi_info_t::init_chart_mode(enum chart_mode_t mode)
 			chart.set_dimension(SPEED_RECORDS, 10000);
 			chart.set_x_label_span(4);
 			break;
+#endif
 		default:
+#ifdef ACCELERATION_BUTTON
 			chart.hide_curve(ACCELERATION_BUTTON);
 			chart.hide_curve(TRACTIVE_FORCE_BUTTON);
 			chart.hide_curve(TRACTIVE_FORCE_BUTTON + 1);
 			filterButtons[ACCELERATION_BUTTON].pressed = false;
 			filterButtons[TRACTIVE_FORCE_BUTTON].pressed = false;
+#endif
 			chart.set_dimension(MAX_MONTHS, 10000);
 			chart.set_seed(0);
 			chart.set_x_label_span();
@@ -1044,7 +1060,6 @@ void convoi_info_t::init_chart_mode(enum chart_mode_t mode)
 			break;
 	}
 }
-
 
 /**
  * This method is called if an action is triggered
@@ -1150,6 +1165,7 @@ bool convoi_info_t::action_triggered( gui_action_creator_t *comp,value_t /* */)
 			filterButtons[i].pressed = !filterButtons[i].pressed;
 			if (filterButtons[i].pressed) {
 				chart.show_curve(i);
+#ifdef ACCELERATION_BUTTON
 				if (i == ACCELERATION_BUTTON) {
 					init_chart_mode(convoy_acceleration);
 				}
@@ -1159,12 +1175,15 @@ bool convoi_info_t::action_triggered( gui_action_creator_t *comp,value_t /* */)
 				else {
 					init_chart_mode(convoy_finance);
 				}
+#endif
 			}
 			else {
 				chart.hide_curve(i);
+#ifdef ACCELERATION_BUTTON
 				if (i == TRACTIVE_FORCE_BUTTON) {
 					chart.hide_curve(i+1);
 				}
+#endif
 			}
 
 			return true;

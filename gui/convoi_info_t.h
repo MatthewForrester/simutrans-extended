@@ -34,10 +34,16 @@
 // define ACCELERATION_BUTTON to show it and the graph.
 // do not define it and there are neither button nor graph.
 #define ACCELERATION_BUTTON convoi_t::MAX_CONVOI_COST
+#ifdef ACCELERATION_BUTTON
 #define TRACTIVE_FORCE_BUTTON ACCELERATION_BUTTON+1
 #define MAX_PHYSICS_CURVE 3
 #define BUTTON_COUNT convoi_t::MAX_CONVOI_COST + MAX_PHYSICS_CURVE - 1
+#define ADDITIONAL_CHART 1
 #define SPEED_RECORDS 25
+#else
+#define BUTTON_COUNT MAX_CONVOI_COST
+#define ADDITIONAL_CHART 0
+#endif
 
 class convoi_info_t : public gui_frame_t, private action_listener_t
 {
@@ -58,12 +64,6 @@ public:
 	};
 
 private:
-
-	enum chart_mode_t {
-		convoy_finance = 0,
-		convoy_acceleration = 1,
-		convoy_force = 2
-	};
 
 	/**
 	* Buffer for freight info text string.
@@ -107,8 +107,18 @@ private:
 	// current pointer to route ...
 	sint32 cnv_route_index;
 
+#ifdef ACCELERATION_BUTTON
 	//Bernd Gabriel, Sep, 24 2009: acceleration curve:
 	sint64 physics_curves[SPEED_RECORDS][MAX_PHYSICS_CURVE];
+#endif
+	enum chart_mode_t {
+		convoy_finance = 0,
+#ifdef ACCELERATION_BUTTON
+		convoy_acceleration = 1,
+		convoy_force = 2
+#endif
+	};
+	inline void init_chart_mode(enum chart_mode_t mode);
 
 	char cnv_name[256],old_cnv_name[256];
 
@@ -125,8 +135,6 @@ private:
 	static const char *sort_text[SORT_MODES];
 
 	void show_hide_statistics( bool show );
-
-	inline void init_chart_mode(enum chart_mode_t mode);
 
 public:
 	convoi_info_t(convoihandle_t cnv);
