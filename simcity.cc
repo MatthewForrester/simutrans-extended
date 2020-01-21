@@ -749,9 +749,15 @@ sint32 stadt_t::bewerte_pos(const koord pos, const rule_t &regel)
 
 bool stadt_t::maybe_build_road(koord k, bool map_generation)
 {
+	karte_t::runway_info ri = welt->check_nearby_runways(k);
+	if (ri.pos != koord::invalid)
+	{
+		return false;
+	}
+
 	best_strasse.reset(k);
 	const uint32 num_road_rules = road_rules.get_count();
-	uint32 offset = simrand(num_road_rules, "void stadt_t::build");	// start with random rule
+	uint32 offset = simrand(num_road_rules, "bool stadt_t::maybe_build_road");	// start with random rule
 	for (uint32 i = 0; i < num_road_rules  &&  !best_strasse.found(); i++) {
 		uint32 rule = ( i+offset ) % num_road_rules;
 		sint32 rd = 8 + road_rules[rule]->distribution_weight;
@@ -5489,6 +5495,14 @@ void stadt_t::build(bool new_town, bool map_generation)
 			}
 			// not good for road => test for house
 
+			// Do not build next to a runway
+			karte_t::runway_info ri = welt->check_nearby_runways(k);
+			if (ri.pos != koord::invalid)
+			{
+				candidates.remove_at(idx, false);
+				continue;
+			}
+
 			// we can stop after we have found a positive rule
 			best_haus.reset(k);
 			const uint32 num_house_rules = house_rules.get_count();
@@ -5591,7 +5605,7 @@ vector_tpl<koord>* stadt_t::random_place(const karte_t* wl, const vector_tpl<sin
 		for (pos.x = 2; pos.x < wl_size.x-2; pos.x++ ) {
 			koord my_grid_pos(pos.x/grid_step, pos.y/grid_step);
 			grund_t *gr = wl->lookup_kartenboden(pos);
-			if ( gr->get_hoehe() <= wl->get_groundwater()  || ( gr->hat_weg(water_wt) && gr->get_max_speed() )  ) {
+			if ( gr->get_hoehe() <= wl->get_groundwater()  || ( gr->hat_weg(water_wt) && gr->get_weg(water_wt)->get_max_speed() && gr->get_weg(water_wt)->get_max_axle_load() )  ) {
 				koord dpos;
 				for ( dpos.y = -4; dpos.y < 5; dpos.y++) {
 					for ( dpos.x = -4; dpos.x < 5 ; dpos.x++) {

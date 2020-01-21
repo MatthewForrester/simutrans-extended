@@ -130,6 +130,8 @@ char *tooltip_with_price_and_distance(const char * tip, sint64 price, uint32 dis
 	return tool_t::toolstr;
 }
 
+
+
 // TODO: merge this into building_layout defined in simcity.cc
 static int const building_layout[] = { 0, 0, 1, 4, 2, 0, 5, 1, 3, 7, 1, 0, 6, 3, 2, 0 };
 
@@ -2573,16 +2575,40 @@ waytype_t tool_build_way_t::get_waytype() const
 	return invalid_wt;
 }
 
+
 uint8 tool_build_way_t::is_valid_pos( player_t *player, const koord3d &pos, const char *&error, const koord3d & )
 {
 	error = NULL;
 	grund_t *gr=welt->lookup(pos);
-	if(  gr  &&  slope_t::is_way(gr->get_weg_hang())  ) {
+	uint8 positive_return = 2; 
+	if(  gr  &&  slope_t::is_way(gr->get_weg_hang())  )
+	{
+		// Check for the runway exclusion zone.
+		karte_t::runway_info ri = welt->check_nearby_runways(gr->get_pos().get_2d());
+		if (ri.pos != koord::invalid)
+		{
+			// There is a nearby runway. Only build if we are a runway in the same direction connecting to it,
+			// or a perpendicular taxiway.
+
+			if (desc->get_waytype() != air_wt)
+			{
+				error = "This cannot be built next to a runway.";
+				return 0;
+			}
+			else
+			{
+				// We cannot detect the direciton here, so just signal
+				// that we need to consider this and return.
+				positive_return = 3;
+			}
+		}
 
 		bool const elevated = desc->get_styp() == type_elevated  &&  desc->get_wtyp() != air_wt;
 		// ignore water
-		if(  desc->get_wtyp() != water_wt  &&  gr->get_typ() == grund_t::wasser  ) {
-			if(  !elevated  ||  welt->lookup_hgt( pos.get_2d() ) < welt->get_water_hgt( pos.get_2d() )  ) {
+		if(  desc->get_wtyp() != water_wt  &&  gr->get_typ() == grund_t::wasser  )
+		{
+			if(  !elevated  ||  welt->lookup_hgt( pos.get_2d() ) < welt->get_water_hgt( pos.get_2d() )  ) 
+			{
 				return 0;
 			}
 			// here either channel or elevated way over not too deep water
@@ -2592,7 +2618,6 @@ uint8 tool_build_way_t::is_valid_pos( player_t *player, const koord3d &pos, cons
 		{
 			// Also check for large buildings below
 			grund_t* gr_below = welt->lookup_kartenboden(pos.get_2d());
-			const koord TEST_pos = pos.get_2d();
 			if (gr_below) 
 			{
 				if (const gebaeude_t* gb = gr_below->get_building())
@@ -2608,7 +2633,7 @@ uint8 tool_build_way_t::is_valid_pos( player_t *player, const koord3d &pos, cons
 			gr = welt->lookup( pos + koord3d( 0, 0, welt->get_settings().get_way_height_clearance() ) );
 			if(  gr == NULL  ) 
 			{
-				return 2;
+				return positive_return;
 			}
 			if(  gr->get_typ() != grund_t::monorailboden  ) 
 			{
@@ -2623,17 +2648,17 @@ uint8 tool_build_way_t::is_valid_pos( player_t *player, const koord3d &pos, cons
 			// allow to connect to any road, or anywhere where the player has been granted access rights.
 			if(desc->get_wtyp() == road_wt || way->get_owner() == NULL || way->get_owner()->allows_access_to(player->get_player_nr()))
 			{
-				return 2;
+				return positive_return;
 			}
 			error = way-> is_deletable(player);
-			return error==NULL ? 2 : 0;
+			return error==NULL ? positive_return : 0;
 		}
 		leitung_t* lt = gr->get_leitung();
 		if(lt)
 		{
 			if(!lt->get_owner() || lt->get_owner()->allows_access_to(player->get_player_nr()))
 			{
-				return 2;
+				return positive_return;
 			}
 		}
 		// check for ownership but ignore moving things
@@ -2650,7 +2675,7 @@ uint8 tool_build_way_t::is_valid_pos( player_t *player, const koord3d &pos, cons
 	else {
 		return 0;
 	}
-	return 2;
+	return positive_return;
 }
 
 void tool_build_way_t::calc_route( way_builder_t &bauigel, const koord3d &start, const koord3d &end )
@@ -3100,6 +3125,13 @@ uint8 tool_build_bridge_t::is_valid_pos(  player_t *player, const koord3d &pos, 
 	const waytype_t wt = desc->get_waytype();
 
 	error = NULL;
+
+	karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+	if (ri.pos != koord::invalid)
+	{
+		return 0;
+	}
+
 	grund_t *gr = welt->lookup(pos);
 	if(  gr==NULL  ||  !slope_t::is_way(gr->get_grund_hang())  ||  !bridge_builder_t::can_place_ramp( player, gr, wt, (is_first_click() ? 0 : ribi_type(pos-start)) )  ) {
 		return 0;
@@ -3386,7 +3418,13 @@ uint8 tool_build_tunnel_t::is_valid_pos(  player_t *player, const koord3d &pos, 
 		return 2;
 	}
 	// .. otherwise build tunnel mouths (and tunnel behind)
-	else {
+	else 
+	{
+		karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+		if (ri.pos != koord::invalid)
+		{
+			return 0;
+		}
 		return 1;
 	}
 }
@@ -4073,7 +4111,13 @@ const char *tool_build_station_t::tool_station_building_aux(player_t *player, bo
 	{
 		return "";
 	}
-DBG_MESSAGE("tool_station_building_aux()", "building post office/station building on square %d,%d", k.x, k.y);
+	DBG_MESSAGE("tool_station_building_aux()", "building post office/station building on square %d,%d", k.x, k.y);
+
+	karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
 
 	// Player player pays for the construction
 	// but we try to extend stations of Player new_owner that may be the public player
@@ -4324,6 +4368,14 @@ const char *tool_build_station_t::tool_station_dock_aux(player_t *player, koord3
 {
 	// the cursor cannot be outside the map from here on
 	const koord& k = pos.get_2d();
+
+	karte_t::runway_info ri = welt->check_nearby_runways(k);
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
+
+
 	grund_t *gr = welt->lookup_kartenboden(k);
 	if (gr->get_hoehe()!= pos.z) {
 		return "";
@@ -4566,6 +4618,13 @@ const char *tool_build_station_t::tool_station_flat_dock_aux(player_t *player, k
 {
 	// the cursor cannot be outside the map from here on
 	koord k = pos.get_2d();
+
+	karte_t::runway_info ri = welt->check_nearby_runways(k);
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
+
 	grund_t *gr = welt->lookup_kartenboden(k);
 	if (gr->get_hoehe()!= pos.z) {
 		return "";
@@ -4820,6 +4879,13 @@ const char *tool_build_station_t::tool_station_flat_dock_aux(player_t *player, k
 const char *tool_build_station_t::tool_station_aux(player_t *player, koord3d pos, const building_desc_t *desc, waytype_t wegtype, const char *type_name )
 {
 	const koord& k = pos.get_2d();
+
+	karte_t::runway_info ri = welt->check_nearby_runways(k);
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
+
 DBG_MESSAGE("tool_station_aux()", "building %s on square %d,%d for waytype %x", desc->get_name(), k.x, k.y, wegtype);
 	const char *p_error=(desc->get_all_layouts()==4) ? "No terminal station here!" : "No through station here!";
 
@@ -5357,7 +5423,13 @@ waytype_t tool_build_station_t::get_waytype() const
 
 const char *tool_build_station_t::check_pos( player_t*,  koord3d pos )
 {
-	if(  grund_t *gr = welt->lookup( pos )  ) {
+	if(  grund_t *gr = welt->lookup( pos )  ) 
+	{
+		karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+		if (ri.pos != koord::invalid)
+		{
+			return "This cannot be built next to a runway.";
+		}
 		sint8 rotation;
 		const building_desc_t *desc = get_desc(rotation);
 		if(  grund_t *bd = welt->lookup_kartenboden( pos.get_2d() )  ) {
@@ -5927,7 +5999,7 @@ const char *tool_build_roadsign_t::do_work( player_t *player, const koord3d &sta
 					if(  rs != NULL  &&  rs-> is_deletable(player) == NULL  ) {
 						rs->cleanup(player);
 						delete rs;
-						error_text =  place_sign_intern( player, gr );
+						error_text = place_sign_intern( player, gr );
 					}
 				}else if (signal[player->get_player_nr()].place_backward) {
 					roadsign_t* rs = gr->find<signal_t>();
@@ -5943,7 +6015,12 @@ const char *tool_build_roadsign_t::do_work( player_t *player, const koord3d &sta
 			}
 			roadsign_t* rs = gr->find<signal_t>();
 			if(rs == NULL) rs = gr->find<roadsign_t>();
-			assert(rs);
+			if (!rs)
+			{
+				// A signal may not have been built here if it exceeded
+				// the signalbox's capacity.
+				goto end;
+			}
 			rs->set_dir(dir);
 		}
 		else {
@@ -5958,6 +6035,7 @@ const char *tool_build_roadsign_t::do_work( player_t *player, const koord3d &sta
 		weg->count_sign();
 		gr->calc_image();
 	}
+	end: 
 	cleanup();
 	directions.clear();
 	return NULL;
@@ -6113,9 +6191,23 @@ const char *tool_build_roadsign_t::place_sign_intern( player_t *player, grund_t*
 							};
 						}
 					}
-					rs = new signal_t(player, gr->get_pos(), dir, desc, signal[player->get_player_nr()].signalbox);
-					DBG_MESSAGE("tool_roadsign()", "new signal, dir is %i", dir);
-					goto built_sign;
+					// Check whether we can add the signal or whether the signalbox is out of capacity
+					signalbox_t* sb = NULL;
+					gebaeude_t* gb = NULL;
+					if (desc->get_signal_group())
+					{
+						gb = welt->lookup(signal[player->get_player_nr()].signalbox)->get_building();
+					}
+					if (gb && gb->get_tile()->get_desc()->is_signalbox())
+					{
+						sb = (signalbox_t*)gb;
+					}
+					if ((sb && sb->get_number_of_signals_controlled_from_this_box() < sb->get_tile()->get_desc()->get_capacity()) || desc->get_signal_group() == 0)
+					{
+						rs = new signal_t(player, gr->get_pos(), dir, desc, signal[player->get_player_nr()].signalbox);
+						DBG_MESSAGE("tool_roadsign()", "new signal, dir is %i", dir);
+						goto built_sign;
+					}					
 				}
 			} else {
 				// if there is already a sign, we might need to inverse the direction
@@ -6165,6 +6257,13 @@ built_sign:
 // Build signalboxes
 const char* tool_signalbox_t::tool_signalbox_aux(player_t* player, koord3d pos, const building_desc_t* desc, sint64 cost)
 {
+
+	karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
+
 	if (cost == PRICE_MAGIC)
 	{
 		cost = -welt->get_settings().cst_multiply_station * desc->get_level();
@@ -6403,6 +6502,12 @@ const char *tool_build_depot_t::tool_depot_aux(player_t *player, koord3d pos, co
 		return NOTICE_INSUFFICIENT_FUNDS;
 	}
 
+	karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
+
 	if(welt->is_within_limits(pos.get_2d())) {
 		grund_t *bd=NULL;
 		// special for the seven seas ...
@@ -6597,6 +6702,12 @@ const char *tool_build_house_t::work( player_t *player, koord3d pos )
 		return "";
 	}
 
+	karte_t::runway_info ri = welt->check_nearby_runways(k);
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
+
 	// Parsing parameter (if there)
 	const building_desc_t *desc = NULL;
 	if (!strempty(default_param)) {
@@ -6707,6 +6818,12 @@ const char *tool_build_land_chain_t::work( player_t *player, koord3d pos )
 	const grund_t* gr = welt->lookup_kartenboden(pos.get_2d());
 	if(gr==NULL) {
 		return "";
+	}
+
+	karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
 	}
 
 	const factory_desc_t *fab = NULL;
@@ -7049,6 +7166,12 @@ DBG_MESSAGE("tool_headquarter()", "building headquarters at (%d,%d)", pos.x, pos
 		return "";
 	}
 
+	karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+	if (ri.pos != koord::invalid)
+	{
+		return "This cannot be built next to a runway.";
+	}
+
 	koord size = desc->get_size();
 	sint64 const cost = welt->get_settings().cst_multiply_headquarter * desc->get_level() * size.x * size.y;
 	if(! player_t::can_afford(player, -cost) ) {
@@ -7211,9 +7334,14 @@ const char *tool_add_citycar_t::work( player_t *player, koord3d pos )
 }
 
 
-uint8 tool_forest_t::is_valid_pos( player_t *, const koord3d &, const char *&, const koord3d & )
+uint8 tool_forest_t::is_valid_pos( player_t *, const koord3d &pos, const char *&, const koord3d & )
 {
-	// do really nothing ...
+	// No building of trees next to runways
+	karte_t::runway_info ri = welt->check_nearby_runways(pos.get_2d());
+	if (ri.pos != koord::invalid)
+	{
+		return 0;
+	}
 	return 2;
 }
 
@@ -7572,18 +7700,21 @@ uint8 tool_reassign_signal_t::is_valid_pos(player_t *player, const koord3d &pos,
 		error = "";
 	}
 
-	// Check that the destination signalbox is in range of the signal
-	const uint32 distance = shortest_distance(sig->get_pos().get_2d(), sb_end->get_pos().get_2d()) * welt->get_settings().get_meters_per_tile();
-	if (distance > sb_end->get_tile()->get_desc()->get_radius())
+	if (sig)
 	{
-		error = "Cannot build any signal beyond the maximum radius of the currently selected signalbox.";
-		return 0;
-	}
+		// Check that the destination signalbox is in range of the signal
+		const uint32 distance = shortest_distance(sig->get_pos().get_2d(), sb_end->get_pos().get_2d()) * welt->get_settings().get_meters_per_tile();
+		if (distance > sb_end->get_tile()->get_desc()->get_radius())
+		{
+			error = "Cannot build any signal beyond the maximum radius of the currently selected signalbox.";
+			return 0;
+		}
 
-	if (distance > sig->get_desc()->get_max_distance_to_signalbox())
-	{
-		error = "Cannot build this signal this far beyond any signalbox.";
-		return 0;
+		if (sig->get_desc()->get_max_distance_to_signalbox() && distance > sig->get_desc()->get_max_distance_to_signalbox())
+		{
+			error = "Cannot build this signal this far beyond any signalbox.";
+			return 0;
+		}
 	}
 
 	if(is_valid_start)
