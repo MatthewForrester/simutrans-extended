@@ -3960,3 +3960,12 @@ Selectable livery schemes
 ; Starting acceleration: %.2f - %.2f km/h/s
 This cannot be built next to a runway.
 This cannot be built next to a runway.
+Starting acceleration:
+Starting acceleration:
+; %i km/h @ %.2f sec
+; %i km/h @ %.2f sec
+; %i km/h @ %.2f - %.2f sec
+; %i km/h @ %.2f - %.2f sec
+; %i km/h @ %.2f sec -  %i km/h @ %.2f sec
+; %i km/h @ %.2f sec -  %i km/h @ %.2f sec
+
