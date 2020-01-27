@@ -1079,6 +1079,7 @@ void fabrik_t::build(sint32 rotate, bool build_fields, bool force_initial_prodba
 	pos_origin.z = pos.z;
 
 	// Must build roads before fields so that the road is not blocked by the fields.
+
 	if (!from_saved && welt->get_settings().get_auto_connect_industries_and_attractions_by_road())
 	{
 		building->connect_by_road_to_nearest_city();
