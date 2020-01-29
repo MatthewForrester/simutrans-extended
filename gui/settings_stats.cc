@@ -520,8 +520,8 @@ void settings_extended_revenue_stats_t::init( settings_t *sets )
 	}
 	SEPERATOR;
 	INIT_NUM("max_comfort_preference_percentage", sets->get_max_comfort_preference_percentage(), 100, 65535, gui_numberinput_t::AUTOLINEAR, false);
-	INIT_BOOL("rural_industries_no_staff_shortage", sets->rural_industries_no_staff_shortage); 
-	
+	INIT_BOOL("rural_industries_no_staff_shortage", sets->rural_industries_no_staff_shortage);
+	INIT_NUM("auto_connect_industries_and_attractions_by_road", sets->auto_connect_industries_and_attractions_by_road, 0, 65535, gui_numberinput_t::PLAIN, false); 
 	clear_dirty();
 	height = ypos;
 	set_size(settings_stats_t::get_size());
