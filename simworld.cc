@@ -146,7 +146,8 @@ static pthread_mutexattr_t mutex_attributes;
 //static pthread_mutex_t path_explorer_await_mutex = PTHREAD_MUTEX_INITIALIZER;
 //pthread_mutex_t karte_t::unreserve_route_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static pthread_mutex_t private_car_route_mutex;
+pthread_mutex_t karte_t::private_car_route_mutex;
+pthread_mutex_t karte_t::private_car_store_route_mutex;
 pthread_mutex_t karte_t::step_passengers_and_mail_mutex;
 static pthread_mutex_t path_explorer_await_mutex;
 pthread_mutex_t karte_t::unreserve_route_mutex;
@@ -1611,14 +1612,14 @@ void *check_road_connexions_threaded(void *args)
 		{
 			break;
 		}
-		int error = pthread_mutex_lock(&private_car_route_mutex);
+		int error = pthread_mutex_lock(&karte_t::private_car_route_mutex);
 		assert(error == 0);
 		if (karte_t::cities_to_process > 0)
 		{
 			stadt_t* city;
 			city = world()->cities_awaiting_private_car_route_check.remove_first();
 			karte_t::cities_to_process--;
-			int error = pthread_mutex_unlock(&private_car_route_mutex);
+			int error = pthread_mutex_unlock(&karte_t::private_car_route_mutex);
 			assert(error == 0);
 
 			if (!city)
@@ -1633,7 +1634,7 @@ void *check_road_connexions_threaded(void *args)
 		}
 		else
 		{
-			int error = pthread_mutex_unlock(&private_car_route_mutex);
+			int error = pthread_mutex_unlock(&karte_t::private_car_route_mutex);
 			assert(error == 0);
 		}
 		// Having two barrier waits here is intentional.
@@ -2044,6 +2045,7 @@ void karte_t::init_threads()
 	pthread_mutexattr_settype(&mutex_attributes, PTHREAD_MUTEX_ERRORCHECK);
 
 	pthread_mutex_init(&private_car_route_mutex, &mutex_attributes);
+	pthread_mutex_init(&private_car_store_route_mutex, &mutex_attributes);
 	pthread_mutex_init(&step_passengers_and_mail_mutex, &mutex_attributes);
 	pthread_mutex_init(&path_explorer_await_mutex, &mutex_attributes);
 	pthread_mutex_init(&unreserve_route_mutex, &mutex_attributes);
@@ -2198,6 +2200,7 @@ void karte_t::destroy_threads()
 
 		// Destroy mutexes
 		pthread_mutex_destroy(&private_car_route_mutex);
+		pthread_mutex_destroy(&private_car_store_route_mutex);
 		pthread_mutex_destroy(&step_passengers_and_mail_mutex);
 		pthread_mutex_destroy(&path_explorer_await_mutex);
 		pthread_mutex_destroy(&unreserve_route_mutex);
@@ -5066,7 +5069,7 @@ void karte_t::new_month()
 		{
 			cities_awaiting_private_car_route_check.append_unique(s);
 		}
-		s->new_month(recheck_road_connexions);
+		s->new_month();
 		//INT_CHECK("simworld 3117");
 		total_electric_demand += s->get_power_demand();
 	}
@@ -5115,7 +5118,8 @@ void karte_t::new_month()
 		// This will add a city if the city has engulfed the substation, and remove a city if
 		// the city has been deleted or become smaller. 
 		senke_t* const substation = senke_iter;
-		stadt_t* const city = get_city(substation->get_pos().get_2d());
+		const planquadrat_t* tile = access(substation->get_pos().get_2d());
+		stadt_t* const city = tile ? tile->get_city() : NULL;
 		substation->set_city(city);
 		if(city)
 		{
@@ -6831,10 +6835,9 @@ sint32 karte_t::generate_passengers_or_mail(const goods_desc_t * wtyp)
 			destination_town = current_destination.type == town ? current_destination.building->get_stadt() : NULL;
 			if(city)
 			{
-#ifdef DESTINATION_CITYCARS
-
-				city->generate_private_cars(origin_pos.get_2d(), car_minutes, destination_pos, units_this_step);
-#endif
+				// Make sure to normalise the destination for attractions
+				const koord adjusted_destination_pos = current_destination.building->get_first_tile()->get_pos().get_2d();
+				city->generate_private_cars(origin_pos.get_2d(), car_minutes, adjusted_destination_pos, units_this_step);
 				if(wtyp == goods_manager_t::passengers)
 				{
 					city->set_private_car_trip(units_this_step, destination_town);
@@ -7276,9 +7279,18 @@ no_route:
 							city->add_transported_mail(units_this_step);
 						}
 					}
-#ifdef DESTINATION_CITYCARS
-					city->generate_private_cars(current_destination.location, car_minutes, origin_pos.get_2d(), units_this_step);
-#endif
+					const grund_t* gr_origin = lookup(origin_pos); 
+					koord adjusted_return_pos = origin_pos.get_2d();
+					if (gr_origin)
+					{
+						const gebaeude_t* gb_origin = gr_origin->get_building();
+						if (gb_origin)
+						{
+							adjusted_return_pos = gb_origin->get_first_tile()->get_pos().get_2d();
+						}
+					}
+
+					city->generate_private_cars(current_destination.location, car_minutes, adjusted_return_pos, units_this_step);
 					if(current_destination.type == factory && trip == mail_trip)
 					{
 						current_destination.building->get_fabrik()->book_stat(units_this_step, FAB_MAIL_DEPARTED);

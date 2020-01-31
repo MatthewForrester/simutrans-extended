@@ -53,6 +53,7 @@
 #include "../../descriptor/roadsign_desc.h"
 #include "../../descriptor/building_desc.h" // for ::should_city_adopt_this
 #include "../../utils/simstring.h"
+#include "../../simcity.h"
 
 #include "../../bauer/wegbauer.h"
 
@@ -462,6 +463,37 @@ void weg_t::rdwr(loadsave_t *file)
 		file->rdwr_bool(deg);
 		degraded = deg;
 #endif
+
+		if (file->get_extended_version() >= 15 || (file->get_extended_version() >= 14 && file->get_extended_revision() >= 19))
+		{
+			if (file->is_saving())
+			{
+				uint32 private_car_routes_count = private_car_routes.get_count();
+				file->rdwr_long(private_car_routes_count); 
+				FOR(private_car_route_map, element, private_car_routes)
+				{
+					koord destination = element.key;
+					koord3d next_tile = element.value;
+
+					destination.rdwr(file);
+					next_tile.rdwr(file);
+				}
+			}
+			else // Loading
+			{
+				uint32 private_car_routes_count = 0;
+				file->rdwr_long(private_car_routes_count);
+				for (uint32 i = 0; i < private_car_routes_count; i++)
+				{
+					koord destination;
+					destination.rdwr(file); 
+					koord3d next_tile;
+					next_tile.rdwr(file);
+
+					private_car_routes.put(destination, next_tile);
+				}
+			}
+		}
 	}
 }
 
@@ -524,8 +556,6 @@ void weg_t::info(cbuffer_t & buf, bool is_bridge) const
 			buf.append("\n\n");
 		}
 	}
-
-
 
 	if (!impassible)
 	{
@@ -591,6 +621,36 @@ void weg_t::info(cbuffer_t & buf, bool is_bridge) const
 			buf.append(translator::translate("tonnen"));
 			buf.append("\n");
 		}
+#ifdef DEBUG
+		// Private car routes from here
+		// This generates a lot of text spam, so this should no be enabled by default.
+		if (!private_car_routes.empty())
+		{
+			buf.append("\n"); 
+			buf.append(translator::translate("Road routes from here:")); // TODO: Add translator entry for this text - if this does not remain debug only.
+			FOR(private_car_route_map, const& route, private_car_routes)
+			{
+				
+				const grund_t* gr = welt->lookup_kartenboden(route.key);
+				const gebaeude_t* building = gr ? gr->get_building() : NULL;
+				if (building)
+				{
+					buf.append("\n");
+					buf.append(translator::translate(building->get_individual_name())); 
+				}
+				else
+				{
+					const stadt_t* city = welt->get_city(route.key);
+					if (city)
+					{
+						buf.append("\n");
+						buf.append(city->get_name()); 
+					}
+				}
+			}
+			buf.append("\n");
+		}
+#endif
 	}
 
 	if (wtyp == air_wt && desc->get_styp() == type_runway)
@@ -1669,9 +1729,10 @@ void weg_t::degrade()
 		set_owner(NULL);
 		if(wtyp == road_wt)
 		{
-			const stadt_t* city = welt->get_city(get_pos().get_2d());
 			if (!initially_unowned && welt->get_timeline_year_month())
 			{
+				const planquadrat_t* tile = welt->access(get_pos().get_2d());
+				const stadt_t* city = tile ? tile->get_city() : NULL;
 				const way_desc_t* wb = city ? welt->get_settings().get_city_road_type(welt->get_timeline_year_month()) : welt->get_settings().get_intercity_road_type(welt->get_timeline_year_month());
 				set_desc(wb ? wb : desc);
 			}
