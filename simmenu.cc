@@ -59,6 +59,8 @@ vector_tpl<toolbar_t *>tool_t::toolbar_tool(0);
 
 char tool_t::toolstr[1088];
 
+toolbar_last_used_t *toolbar_last_used_t::last_used_tools = NULL;
+
 // separator in toolbars
 class tool_dummy_t : public tool_t {
 public:
@@ -70,9 +72,6 @@ public:
 	bool is_move_network_save(player_t*) const OVERRIDE { return true; }
 };
 tool_t *tool_t::dummy = new tool_dummy_t();
-
-
-
 
 tool_t *create_general_tool(int toolnr)
 {
@@ -436,7 +435,7 @@ void tool_t::read_menu(const std::string &objfilename)
 				if(*str==',') {
 					// next comes cursor
 					str++;
-					if(*str!=',') {
+					if(*str  &&  *str!=',') {
 						uint16 cursor = (uint16)atoi(str);
 						if(  cursor>=info[t].cursor->get_count()  ) {
 							dbg->warning( "tool_t::init_menu()", "wrong cursor (%i) given for %s[%i]", cursor, info[t].type, i );
@@ -452,7 +451,7 @@ void tool_t::read_menu(const std::string &objfilename)
 				if(*str==',') {
 					// ok_sound
 					str++;
-					if(*str!=',') {
+					if(*str  &&  *str!=',') {
 						int sound = atoi(str);
 						if(  sound>0  ) {
 							tool->ok_sound = sound_desc_t::get_compatible_sound_id(sound);
@@ -478,12 +477,10 @@ void tool_t::read_menu(const std::string &objfilename)
 	}
 	// now the toolbar tools
 	DBG_MESSAGE( "tool_t::read_menu()", "Reading toolbars" );
-	// default size
-//	env_t::iconsize = scr_size( contents.get_int("icon_width",env_t::iconsize.w), contents.get_int("icon_height",env_t::iconsize.h) );
+	toolbar_last_used_t::last_used_tools = new toolbar_last_used_t( TOOL_LAST_USED | TOOLBAR_TOOL, "Last used tools", "last_used.txt" );
 	// first: add main menu
 	toolbar_tool.resize( skinverwaltung_t::tool_icons_toolbars->get_count() );
 	toolbar_tool.append(new toolbar_t(TOOLBAR_TOOL, "", ""));
-	// now for the rest
 	for(  uint16 i=0;  i<toolbar_tool.get_count();  i++  ) {
 		char id[256];
 		for(  int j=0;  ;  j++  ) {
@@ -632,9 +629,17 @@ void tool_t::read_menu(const std::string &objfilename)
 				else {
 					dbg->error( "tool_t::read_menu()", "When parsing menuconf.tab: No dialog tool %i defined (max %i)!", toolnr, (toolnr<0x80) ? DIALOG_TOOL_STANDARD_COUNT : DIALOG_TOOL_COUNT );
 				}
-			} else if (char const* const c = strstart(toolname, "toolbar[")) {
+			}
+			else if (char const* const c = strstart(toolname, "toolbar[")) {
 				uint8 const toolnr = atoi(c);
-				assert(toolnr>0);
+				if(  toolnr==0  ) {
+					if(  strstr( c, "LAST_USED" )  ) {
+						addtool = toolbar_last_used_t::last_used_tools;
+					}
+					else {
+						dbg->fatal( "Error in menuconf: toolbar cannot call main toolbar", "%s", toolname );
+					}
+				}
 				if(toolbar_tool.get_count()==toolnr) {
 					if(param_str==NULL) {
 						param_str = "Unnamed toolbar";
@@ -643,7 +648,9 @@ void tool_t::read_menu(const std::string &objfilename)
 					char *c = strdup(param_str);
 					const char *title = c;
 					c += strcspn(c, ",");
-					if (*c != '\0') *c++ = '\0';
+					if (*c != '\0') {
+						*c++ = '\0';
+					}
 					toolbar_t* const tb = new toolbar_t(toolbar_tool.get_count() | TOOLBAR_TOOL, title, c);
 					toolbar_tool.append(tb);
 					addtool = tb;
@@ -670,6 +677,8 @@ void tool_t::read_menu(const std::string &objfilename)
 			}
 		}
 	}
+	toolbar_tool.append( toolbar_last_used_t::last_used_tools );
+	
 	// sort characters
 	std::sort(char_to_tool.begin(), char_to_tool.end(), compare_tool);
 }
@@ -691,6 +700,7 @@ void tool_t::update_toolbars()
 			break;
 		}
 	}
+	toolbar_last_used_t::last_used_tools->update( world()->get_active_player() );
 }
 
 
@@ -794,7 +804,7 @@ void toolbar_t::update(player_t *player)
 	// now (re)fill it
 	FOR(slist_tpl<tool_t*>, const w, tools) {
 		// no way to call this tool? => then it is most likely a metatool
-		if(w->command_key==1  &&  w->get_icon(welt->get_active_player())==IMG_EMPTY) {
+		if(w->command_key==1  &&  w->get_icon(player)==IMG_EMPTY) {
 
 			if (char const* const param = w->get_default_param(player)) {
 				if(  create  ) {
@@ -807,32 +817,38 @@ void toolbar_t::update(player_t *player)
 					}
 					systemtype_t subtype = (systemtype_t)(*c!=0 ? atoi(++c) : 0);
 					way_builder_t::fill_menu( tool_selector, way, subtype, get_sound(c));
-				} else if (char const* const c = strstart(param, "bridges(")) {
+				}
+				else if (char const* const c = strstart(param, "bridges(")) {
 					waytype_t const way = (waytype_t)atoi(c);
 					bridge_builder_t::fill_menu(tool_selector, way, get_sound(c));
-				} else if (char const* const c = strstart(param, "tunnels(")) {
+				}
+				else if (char const* const c = strstart(param, "tunnels(")) {
 					waytype_t const way = (waytype_t)atoi(c);
 					tunnel_builder_t::fill_menu(tool_selector, way, get_sound(c));
-				} else if (char const* const c = strstart(param, "signs(")) {
+				}
+				else if (char const* const c = strstart(param, "signs(")) {
 					waytype_t const way = (waytype_t)atoi(c);
 					roadsign_t::fill_menu(tool_selector, way, get_sound(c));
-				} else if (char const* const c = strstart(param, "wayobjs(")) {
+				}
+				else if (char const* const c = strstart(param, "wayobjs(")) {
 					waytype_t const way = (waytype_t)atoi(c);
 					wayobj_t::fill_menu(tool_selector, way, get_sound(c));
-				} else if (char const* c = strstart(param, "buildings(")) {
+				}
+				else if (char const* c = strstart(param, "buildings(")) {
 					building_desc_t::btype const utype = (building_desc_t::btype)atoi(c);
 					while(*c  &&  *c!=','  &&  *c!=')') {
 						c++;
 					}
 					waytype_t way = (waytype_t)(*c!=0 ? atoi(++c) : 0);
 					hausbauer_t::fill_menu( tool_selector, utype, way, get_sound(c));
-				} else if (param[0] == '-') {
+				}
+				else if (param[0] == '-') {
 					// add dummy tool_t as separator
 					tool_selector->add_tool_selector( dummy );
 				}
 			}
 		}
-		else if(w->get_icon(welt->get_active_player())!=IMG_EMPTY) {
+		else if(w->get_icon(player)!=IMG_EMPTY) {
 			// get the right city_road
 			if(w->get_id() == (TOOL_BUILD_CITYROAD | GENERAL_TOOL)) {
 				w->flags = 0;
@@ -887,6 +903,68 @@ bool toolbar_t::exit(player_t *)
 	return false;
 }
 
+
+// from here on last used toolbar tools (for each player!)
+void toolbar_last_used_t::update(player_t *sp)
+{
+	tools.clear();
+	if(  sp  ){
+		for(  slist_tpl<tool_t *>::iterator iter = all_tools[sp->get_player_nr()].begin();  iter != all_tools[sp->get_player_nr()].end();  ++iter  ) {
+			tools.append( *iter );
+		}
+	}
+	toolbar_t::update( sp );
+}
+
+
+void toolbar_last_used_t::clear()
+{
+	for(  int i=0;  i <MAX_PLAYER_COUNT;  i++  ) {
+		all_tools[i].clear();
+	}
+	tools.clear();
+}
+
+
+// currently only needed for last used tools
+void toolbar_last_used_t::append( tool_t *t, player_t *sp )
+{
+	static int exclude_from_adding[8]={
+		TOOL_SCHEDULE_ADD|GENERAL_TOOL,
+		TOOL_SCHEDULE_INS|GENERAL_TOOL,
+		TOOL_CHANGE_CONVOI|SIMPLE_TOOL,
+		TOOL_CHANGE_LINE|SIMPLE_TOOL,
+		TOOL_CHANGE_DEPOT|SIMPLE_TOOL,
+		UNUSED_WKZ_PWDHASH_TOOL|SIMPLE_TOOL,
+		TOOL_RENAME|SIMPLE_TOOL
+	};
+	
+	if(  !sp ||  t->get_icon(sp)==IMG_EMPTY  ) {
+		return;
+	}
+
+	// do not add certain tools
+	for(  uint i=0;  i<lengthof(exclude_from_adding);  i++  ) {
+		if(  t->get_id() == exclude_from_adding[i]  ) {
+			return;
+		}
+	}
+	
+	if(  all_tools[sp->get_player_nr()].is_contained(t)  ) {
+		all_tools[sp->get_player_nr()].remove( t );
+	}
+	else {
+		while( all_tools[sp->get_player_nr()].get_count() >= MAX_LAST_TOOLS  ) {
+			all_tools[sp->get_player_nr()].remove(tools.back() );
+		}
+	}
+
+	all_tools[sp->get_player_nr()].insert( t );
+	// if current => update
+	if(  sp == world()->get_active_player()  ) {
+		update( sp );
+	}
+}
 
 bool two_click_tool_t::init(player_t *)
 {

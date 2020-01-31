@@ -28,6 +28,7 @@
 #include "dataobj/settings.h"
 #include "network/pwd_hash.h"
 #include "dataobj/loadsave.h"
+#include "dataobj/rect.h"
 
 #include "simware.h"
 
@@ -637,7 +638,7 @@ private:
 	 * @note Variable used in interactive().
 	 * @note Set in reset_timer().
 	 */
-	uint32 fix_ratio_frame_time;
+	sint32 fix_ratio_frame_time;
 
 	/**
 	 * For performance comparison.
@@ -1145,6 +1146,19 @@ public:
 	 */
 	void update_map();
 
+	/**
+	 * Recalcs images after change of underground mode.
+	 */
+	void update_underground();
+
+	/**
+	 * @brief Prepares an area of the map to be drawn.
+	 *
+	 * New area is the area that will be prepared. Old area is the area that was
+	 * already prepared. Only the difference between the two rects is prepared.
+	 */
+	void prepare_tiles(rect_t const& new_area, rect_t const& old_area);
+	
 	/**
 	 * @returns true if world gets destroyed
 	 */

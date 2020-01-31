@@ -1568,26 +1568,26 @@ stadt_t::~stadt_t()
 	{
 		welt->lookup_kartenboden(pos)->set_text(NULL);
 
-		// remove city info and houses
-		while(!buildings.empty())
-		{
-			gebaeude_t* const gb = buildings.pop_back();
-			assert(  gb!=NULL  &&  !buildings.is_contained(gb)  );
+		if (!welt->is_destroying()) {
+			// remove city info and houses
+			while(!buildings.empty()) {
 
-			if(gb->get_tile()->get_desc()->get_type() == building_desc_t::headquarters)
-			{
-				stadt_t *city = welt->find_nearest_city(gb->get_pos().get_2d());
-				gb->set_stadt( city );
-				if(city)
-				{
-					city->buildings.append_unique(gb, gb->get_adjusted_visitor_demand());
+				gebaeude_t* const gb = buildings.pop_back();
+				assert(  gb!=NULL  &&  !buildings.is_contained(gb)  );
+
+				if(gb->get_tile()->get_desc()->get_type() == building_desc_t::headquarters) {
+					stadt_t *city = welt->find_nearest_city(gb->get_pos().get_2d());
+					gb->set_stadt( city );
+					if(city) {
+						city->buildings.append_unique(gb, gb->get_adjusted_visitor_demand());
+					}
+				}
+				else {
+					gb->set_stadt( this );
+					hausbauer_t::remove(welt->get_public_player(), gb, false);
 				}
 			}
-			else
-			{
-				gb->set_stadt( this );
-				hausbauer_t::remove(welt->get_public_player(), gb, false);
-			}
+			// avoid the bookkeeping if world geets destroyed
 		}
 		// Remove substations
 		FOR(vector_tpl<senke_t*>, sub, substations)
@@ -3636,7 +3636,7 @@ void stadt_t::check_bau_spezial(bool new_town)
 					// tell the player, if not during initialization
 					if (!new_town) {
 						cbuffer_t buf;
-						buf.printf( translator::translate("With a big festival\n%s built\na new monument.\n%i citizen rejoiced."), get_name(), get_einwohner() );
+						buf.printf( translator::translate("With a big festival\n%s built\na new monument.\n%i citicens rejoiced."), get_name(), get_einwohner() );
 						welt->get_message()->add_message(buf, best_pos + koord(1, 1), message_t::city, CITY_KI, desc->get_tile(0)->get_background(0, 0, 0));
 					}
 				}
@@ -5569,12 +5569,12 @@ vector_tpl<koord>* stadt_t::random_place(const karte_t* wl, const vector_tpl<sin
 	slist_tpl<koord>* list = welt->find_squares( 5, 5, (climate_bits)cl, old_x, old_y);
 	DBG_DEBUG("karte_t::init()", "found %i places", list->get_count());
 	unsigned int weight_max;
-	// unsigned long here -- from weighted_vector_tpl.h(weight field type)
-	if ( list->get_count() == 0 || (std::numeric_limits<unsigned long>::max)()/ list->get_count() > 65535) {
+	// uint32 here -- from weighted_vector_tpl.h(weight field type)
+	if ( list->get_count() == 0 || (std::numeric_limits<uint32>::max)()/ list->get_count() > 65535) {
 		weight_max = 65535;
 	}
 	else {
-		weight_max = (std::numeric_limits<unsigned long>::max)()/list->get_count();
+		weight_max = (std::numeric_limits<uint32>::max)()/list->get_count();
 	}
 
 	koord wl_size = welt->get_size();

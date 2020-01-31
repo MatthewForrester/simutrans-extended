@@ -1,6 +1,119 @@
-	FIX: sliced undergraound mode now ranges from lowest existing to highest existing ground
-	FIX: several issues with bridge bilding and deletion at two vertical cliffs
-	ADD: new industrial deman dmodel just_in_time=2, which models factory ordering stuff
+	ADD: system clipboard support now also with SDL2
+	FIX: underground slice view now correctly displays front tile walls when a tile infront is flat and 2 elevations below the underground slice
+	OPT: significantly improved the performance of changing underground mode/slice when playing on very large maps
+
+Release of 120.3 (r8503 on 15-June-2018):
+	ADD: new blue-white theme
+	ADD: new general tool 40 which rotates buildings
+	ADD: scenario_info now dialog tool nummer 31
+	ADD: Support Truetype fonts on windows up to 19 pts. For MAC and Linux support there is a way needed to find the font path.
+	ADD: Server can be now started at the UI when loading a game.
+	ADD: switch -easyserver on commandline to host a game with dynamic IP behind a router
+	FIX: crash when resizing isometric minimap
+	FIX: problems with scrolled lists
+	ADD: (Ichou) force replacement of wayobj by holding ctrl key while building
+	ADD: (THLeader) long convoi patch
+	FIX: removed line management window memory leaks
+	ADD: animated pedestrians, parameters:
+		steps_per_frame (internal steps per frame, straight movement across tile is 256 steps)
+		image[dir][a] (dir - direction, a - animation counter, a=0,1,..)
+	CHG: pedestrian movement, new dat parameter:
+		offset (of pedestrian image relative to right tile boundary, 0..255, default 20, 0 = on the right edge of tile, 128 = on center line of tile
+	FIX: corrected container UI component focus logic (fixes http://forum.simutrans.com/index.php?topic=17277 )
+	FIX: added redraw logic for field removal (fixes http://forum.simutrans.com/index.php?topic=17308 )
+	FIX: added Unicode file path support for Windows builds
+	FIX: removed Windows builds file search resource leak
+	FIX: improved Windows build clipboard Unicode parsing
+	ADD: sorting in depot (HyperSim)
+	FIX: factories which gain or lose fields should no longer have a chance to break with JIT2 (fixes https://forum.simutrans.com/index.php?topic=17394 )
+	ADD: sync step barrier for multiplayer clients to prevent them running ahead of the server in the case of an unreliable connection
+	CHG: various multiplayer related settings have been given more reliable default values
+	FIX: fullscreen Windows GDI no longer alters display area when alt+tab cycled
+	ADD: JIT2 demand based production rate scaling
+	CHG: changed factory information view to be easier to understand, especially when operating with JIT2
+	CHG: speed can be directly selected in goods dialogue
+	FIX: consistent and wider climate borders, also other waterlevels than -2 when loading a relief map
+
+
+Release of 120.2.2: (r8163 on 31-3-2017):
+	ADD: Name filter in depot window
+	FIX: Combo boxes now work much more reliable
+	ADD: Shift+waybuilder on elevated ways selects the tile under the way (for upgrades)
+	FIX: Crash when extending convoy length
+	ADD: All configurable colors now rgb internally
+
+Release of 120.2.1: (r8121 on 26-Feb-2017):
+	FIX: SDL2 with non-ASCII input
+	FIX: crashes with SDL2 when resizing
+	FIX: allow docks only next to water
+	CHG: use almost no assembler any more, the compiler can do better than us
+
+Release of 120.2: (r8077 on 12-Feb-2016):
+	FIX: sorting according to displayed name in house/cur/industry building lists
+	ADD: scriptable AI players (folder AI which contains sqai now with distribution)
+	ADD: (jk271) switch to load heightmaps with more height levels
+	FIX: reload themes after restart
+	FIX: demo.sve were never loaded, since the auto-load assumed existence even if there was none
+	ADD/FIX: slopes for groundobj now working again. If there are groundobjs with climate water, then these will be used occasionally at the coastline
+	ADD: ground name=shore with Image[slope][0,1=snow, if there] for display at shoreline
+	FIX: smoke tile when rotated factory views
+	ADD: length of max tiles checker after choose sign/signal configurable (max_choose_route_steps)
+	CHG: update to squirrel 3.1
+	CHG: monthly fixed costs for vehicles now uint32 (needs makeobj 55.4)
+	ADD: basic nearest pixel DPI awareness to prevent UI from being too small on high density displays
+	FIX: no longer assert when duplicate tiles exists in convoy path list, instead it gets logged (please report log if it occurs)
+	FIX: corrected hitbox and resize logic of scrolled list GUI element, which prevents crashes caused by invalid selection
+	CHG: building cities, plant trees, make public, headquarters and artificial slope tools check for sufficient funds
+	CHG: planting trees is no longer possible by companies when no_trees configuration is set
+	CHG: make public tool now works on incline and tunnel entrance ways
+	CHG: make public tool now treats way objects separately from ways
+	ADD: make public tool can be dragged to rapidly make multiple objects public
+	ADD: make public tool cost can be configured
+	ADD: make public tool can be configured to not work on ways or way objects for companies
+	CHG: notifications about ways being made public in multiplayer games are produced less frequently
+	CHG: retained ways from liquidated companies are transferred to the public service player
+	ADD: on multiplayer servers any client capable of using the public service player can bypass password checks for all companies
+	FIX: network core correctly enumerates local bind addresses instead of repeatedly trying to bind to the first local address
+	ADD: support service names for ports in network URNs
+	CHG: cities can now build on tiles with bridge pillars, matching the logic that pillared bridges can be placed over city buildings
+	FIX: incorrect scaling of electricity revenue with respect to month length
+	FIX: electricity related information now accurately reflects the last tick of the network
+	FIX: electricity networks are no longer prone to arithmetic overflow which could result in incorrect graphics or income
+	FIX: electricity networks no longer skip a power tick or lose revenue accumulators during a save/load cycle
+	CHG: simplified transformer information UI removing redundant or meaningless values
+	CHG: factory power is solved in 1 tick instead of 2
+	CHG: various improvements to JIT2 to improve factory and electricity network stability
+	CHG: factories which produce power log the amount of power production consumed instead of the amount of power produced
+	CHG: factories which consume power log the amount consumed as negative
+	FIX: F12 no longer brings up the ingame help window in the Steam version of Simutrans
+
+Release of 120.1.3: (r7753 on 2-Feb-2016):
+	FIX: road vehicles search for new route when arriving at intersection and old route is invalid
+	ADD: depot vehicle filter now uses selected good for weight/speed calculations when possible for multi-good carrying vehicles
+	CHG:(Vladki) private road signs in the middle of a slope
+	FIX: trains reserve blocks at positions of now removed signals, prevents step-by-step reserving coupled with ignoring red signal if signal is removed in front of a waiting train
+	FIX: route search to next depot has to be done synchronous on all clients
+	ADD: ctrl-click on flat-dock icon to choose orientation
+
+Release of 120.1.2: (r7720 on 7-Jan-2016):
+	ADD: configurable compass for minimap, rotation tool, and main screen
+	ADD: tool for last used tools
+	FIX: improve bridge building
+	FIX: (Ters) Map scrolling speed on Windows with high DPI displays
+	FIX: (DrSuperGood) general JIT2 fixes
+	CHG: better multiplayer client timing
+	FIX: uninitialized variables leading to online desyncs
+
+Release of 120.1.1: (r7640 on 4-Nov-2015):
+	FIX: corrected bookkeeping of stops and passengers, including walked ones which could lead to crashes
+
+
+Release of 120.1: (r7634 on 31-Oct-2015):
+	FIX: sliced underground mode now ranges from lowest existing to highest existing ground
+	FIX: several issues with bridge building and deletion at two vertical cliffs
+	ADD: new industrial demand model just_in_time=2, which models factory ordering stuff
+	ADD: new tool for trimming lines (linetool, parameter trim, line_id_id egal, linetype (integer), target percentage (integer): will delete lines until target met or less than four convois left on line
+	ADD: configurable offsets for signs/signals (use offset_left = 0, for not moving, default 14)
 
 
 Release of 120.0.1: (r7373 on 15-Nov-2014):

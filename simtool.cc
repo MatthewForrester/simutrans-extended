@@ -1680,8 +1680,8 @@ const char* tool_transformer_t::get_tooltip(const player_t *) const
 	settings_t const& s = welt->get_settings();
 	sprintf(toolstr, "%s, %ld$ (%ld$)",
 		translator::translate("Build drain"),
-		(long)(s.cst_transformer/-100l),
-		(long)(welt->calc_adjusted_monthly_figure(s.cst_maintain_transformer))/-100l );
+		(sint32)(s.cst_transformer/-100l),
+		(sint32)(welt->calc_adjusted_monthly_figure(s.cst_maintain_transformer))/-100l );
 	return toolstr;
 }
 
@@ -2420,7 +2420,15 @@ const way_desc_t *tool_build_way_t::get_desc( uint16 timeline_year_month, bool r
 		desc = defaults[wt & 63];
 		if(desc == NULL || !desc->is_available(timeline_year_month)) {
 			// Search for default way
-			desc = way_builder_t::weg_search(wt, 0xffffffff, timeline_year_month, type_flat);
+			if(  wt == tram_wt  ||  wt == powerline_wt  ) {
+				desc = way_builder_t::weg_search(wt, 0xffffffff, timeline_year_month, type_flat);
+			}
+			else {
+				// this triggers an assertion if wt == powerline_wt
+				weg_t *w = weg_t::alloc(wt);
+				desc = w->get_desc();
+				delete w;
+			}
 		}
 	}
 	if( desc && remember ) {
@@ -2437,8 +2445,21 @@ const way_desc_t *tool_build_way_t::get_desc( uint16 timeline_year_month, bool r
 image_id tool_build_way_t::get_icon(player_t *) const
 {
 	const way_desc_t *desc = way_builder_t::get_desc(default_param,0);
-	bool const elevated = desc ? desc->get_styp() == type_elevated  &&  desc->get_wtyp() != air_wt : false;
-	return (grund_t::underground_mode == grund_t::ugm_all && elevated) ? IMG_EMPTY : icon;
+	image_id image = icon;
+	bool is_tram = false;
+	if(  desc  ) {
+		is_tram = (desc->get_wtyp()==tram_wt) || (desc->get_styp() == type_tram);
+		if(  image ==  IMG_EMPTY  ) {
+			image = desc->get_cursor()->get_image_id(1);
+		}
+		if(  !desc->is_available( world()->get_timeline_year_month() )  ) {
+			return IMG_EMPTY;
+		}
+	}
+	if(  grund_t::underground_mode==grund_t::ugm_all && !is_tram ) {
+		return IMG_EMPTY;
+	}
+	return image;
 }
 
 const char* tool_build_way_t::get_tooltip(const player_t *) const
@@ -2823,9 +2844,12 @@ void tool_build_way_t::mark_tiles(  player_t *player, const koord3d &start, cons
 				gr->set_grund_hang( welt->lookup( pos - koord3d( 0, 0, offset ) )->get_grund_hang() );
 				welt->access(pos.get_2d())->boden_hinzufuegen(gr);
 			}
+			if (gr->is_water()) {
+				continue;
+			}
 			ribi_t::ribi zeige = gr->get_weg_ribi_unmasked(desc->get_wtyp()) | bauigel.get_route().get_ribi( j );
 
-			zeiger_t *way = new zeiger_t(pos, NULL );
+			zeiger_t *way = new zeiger_t(pos, player);
 			if(gr->get_weg_hang()) {
 				way->set_image( desc->get_slope_image_id(gr->get_weg_hang(),0) );
 			}
@@ -3018,7 +3042,7 @@ void tool_build_bridge_t::mark_tiles(  player_t *player, const koord3d &start, c
 	// flat -> height is 1 if conversion factor 1, 2 if conversion factor 2
 	// single height -> height is 1
 	// double height -> height is 2
-	const slope_t::type slope = gr->get_grund_hang();
+	const slope_t::type slope = gr->get_weg_hang();
 	uint8 max_height = slope ?  slope_t::max_diff(slope) : bridge_height;
 
 	zeiger_t *way = new zeiger_t(start, player );
@@ -8208,7 +8232,7 @@ bool tool_show_underground_t::init( player_t * )
 		tool_t::update_toolbars();
 
 		// recalc all images on map
-		welt->update_map();
+		welt->update_underground();
 	}
 	return needs_click;
 }
@@ -8229,7 +8253,7 @@ const char *tool_show_underground_t::work( player_t *player, koord3d pos)
 	tool_t::update_toolbars();
 
 	// recalc all images on map
-	welt->update_map();
+	welt->update_underground();
 
 	if(player == welt->get_active_player()) {
 		welt->set_tool( general_tool[TOOL_QUERY], player );
@@ -8306,6 +8330,16 @@ void tool_show_underground_t::draw_after(scr_coord k, bool dirty) const
 	}
 }
 
+
+void tool_rotate90_t::draw_after(scr_coord pos, bool dirty) const
+{
+	if(  !env_t::networkmode  ) {
+		if(  skinverwaltung_t::compass_map  ) {
+			display_img_aligned( skinverwaltung_t::compass_map->get_image_id( welt->get_settings().get_rotation()+4 ), scr_rect(pos, env_t::iconsize), ALIGN_CENTER_V|ALIGN_CENTER_H, false );
+		}
+		tool_t::draw_after( pos, dirty );
+	}
+}
 
 bool tool_rotate90_t::init( player_t * )
 {
@@ -8817,7 +8851,7 @@ bool tool_change_line_t::init( player_t *player )
 				}
 
 				FOR(vector_tpl<linehandle_t>,line,lines) {
-					if(  line->get_linetype() == linetype  &&  line->get_convoys().get_count() > 3  ) {
+					if(  line->get_linetype() == linetype  &&  line->get_convoys().get_count() > 2  ) {
 						// correct waytpe and more than one,n now some up usage for the last six months
 						sint64 transported = 0, capacity = 0;
 						for(  int i=0;  i<6;  i++  ) {
@@ -8846,10 +8880,12 @@ bool tool_change_line_t::init( player_t *player )
 							sint64 new_sum_capacity = (transported * 1000 * old_sum_capacity) / (capacity * percentage * 10);
 
 							// first we remove the totally empty convois (nowbody will miss them)
-							int destroyed = 0, initial = line->get_convoys().get_count();
-							for(  int j = initial - 1;  j >= 0  &&  initial-destroyed > 3  &&  new_sum_capacity < old_sum_capacity;  j--  ) {
+							int destroyed = 0;
+							const int initial = line->get_convoys().get_count();
+							const int max_left = (initial+2) / 2;
+							for(  int j = initial - 1;  j >= 0  &&  initial-destroyed > max_left  &&  new_sum_capacity < old_sum_capacity;  j--  ) {
 								convoihandle_t cnv = line->get_convoy(j);
-								if(  cnv->get_loading_level() == 0  ||  cnv->get_state() == convoi_t::INITIAL  ) {
+								if(  cnv->get_state() == convoi_t::INITIAL  ||  cnv->get_state() >= convoi_t::WAITING_FOR_CLEARANCE_ONE_MONTH  ) {
 									for(  int i=0;  i<cnv->get_vehicle_count();  i++  ) {
 										old_sum_capacity -= cnv->get_vehicle(i)->get_desc()->get_capacity();
 									}
@@ -8858,7 +8894,7 @@ bool tool_change_line_t::init( player_t *player )
 								}
 							}
 							// not enough? Then remove from the end ...
-							for(  uint32 j=0;  j < line->get_convoys().get_count()  &&  initial-destroyed > 3  &&  new_sum_capacity < old_sum_capacity;  j++  ) {
+							for(  uint32 j=0;  j < line->get_convoys().get_count()  &&  initial-destroyed > max_left  &&  new_sum_capacity < old_sum_capacity;  j++  ) {
 								convoihandle_t cnv = line->get_convoy(j);
 								if(  cnv->get_state() != convoi_t::SELF_DESTRUCT  ) {
 									for(  int i=0;  i<cnv->get_vehicle_count();  i++  ) {

@@ -1746,7 +1746,7 @@ DBG_DEBUG("way_builder_t::intern_calc_route()","steps=%i  (max %i) in route, ope
 #endif
 	INT_CHECK("wegbauer 194");
 
-	long cost = -1;
+	sint32 cost = -1;
 //DBG_DEBUG("reached","%i,%i",tmp->pos.x,tmp->pos.y);
 	// target reached?
 	if(  !ziel.is_contained(gr->get_pos())  ||  tmp->parent==NULL  ||  tmp->g > maximum  ) {
@@ -2075,7 +2075,7 @@ uint32 ms = dr_time();
 		swap(route, route2);
 		swap(terraform_index, terraform_index2);
 		route_reversed = false;
-		long cost = intern_calc_route(ziel, start);
+		sint32 cost = intern_calc_route(ziel, start);
 		INT_CHECK("wegbauer 1165");
 
 		// the cheaper will survive ...
@@ -3051,7 +3051,7 @@ DBG_MESSAGE("way_builder_t::build()","called, but no valid route.");
 	DBG_MESSAGE("way_builder_t::build()", "type=%d max_n=%d start=%d,%d end=%d,%d", bautyp, get_count() - 1, route.front().x, route.front().y, route.back().x, route.back().y);
 
 #ifdef DEBUG_ROUTES
-long ms=dr_time();
+sint32 ms=dr_time();
 #endif
 
 	if(!mark_way_for_upgrade_only)

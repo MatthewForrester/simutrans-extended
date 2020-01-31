@@ -98,7 +98,7 @@ class grund_t
 {
 public:
 	/**
-	 * Flag-Werte für das neuzeichnen geänderter Untergründe
+	 * Flag-Werte fï¿½r das neuzeichnen geï¿½nderter Untergrï¿½nde
 	 * @author Hj. Malthaner
 	 */
 	enum flag_values {
@@ -112,6 +112,54 @@ public:
 		has_way1 = 64,
 		has_way2 = 128
 	};
+
+	/**
+	 * @brief Back wall corner count.
+	 *
+	 * Number of corners used to produce tile back walls. Visually these corners
+	 * are the left, top and right corners of a tile.
+	 */
+	static size_t const BACK_CORNER_COUNT = 3;
+
+	/**
+	 * @brief Back wall count.
+	 *
+	 * Number of back walls a tile can have. Visually these walls are along the
+	 * top left and right edges of the tile.
+	 */
+	static size_t const BACK_WALL_COUNT = BACK_CORNER_COUNT - 1;
+
+	/**
+	 * @brief Number of wall images per wall.
+	 *
+	 * Number of unique wall image graphics per wall.
+	 */
+	static uint16 const WALL_IMAGE_COUNT = 11;
+
+	/**
+	 * @brief Number of fence images.
+	 *
+	 * Number of unique fence image graphics available. Unlike walls, fence
+	 * images are for an entire tile.
+	 */
+	static uint16 const FENCE_IMAGE_COUNT = 3;
+
+	/**
+	 * @brief Back image ID offset for encoding fences.
+	 *
+	 * The offset used to encode the fence image into a back image ID. Anything
+	 * less than this offset can be considered a wall.
+	 */
+	static sint8 const BIID_ENCODE_FENCE_OFFSET = (sint8)(WALL_IMAGE_COUNT * WALL_IMAGE_COUNT);
+
+	/**
+	 * @brief Maximum distance in tiles that hide test will be performed for.
+	 *
+	 * Maximum distance in tiles that object hide test will be performed for.
+	 * The hide test is needed for correct graphic reproduction of tunnel
+	 * entrances and such.
+	 */
+	static uint16 const MAXIMUM_HIDE_TEST_DISTANCE = 5;
 
 	// just to calculate the offset for skipping the ways ...
 	static uint8 offsets[4];
@@ -238,6 +286,19 @@ public:
 	 */
 	void set_all_obj_dirty() { objlist.set_all_dirty(); }
 
+	/**
+	 * Updates images after change of underground mode.
+	 */
+	void check_update_underground()
+	{
+		if (ist_tunnel()  ||  ist_bruecke()  ||  is_water()) {
+			calc_image();
+		}
+		else {
+			calc_back_image( get_disp_height(), get_disp_slope() );
+		}
+	}
+	
 	/**
 	 * Dient zur Neuberechnung des Bildes, wenn sich die Umgebung
 	 * oder die Lage (Hang) des grundes geaendert hat.
@@ -380,13 +441,13 @@ public:
 	void set_grund_hang(slope_t::type sl) { slope = sl; }
 
 	/**
-	 * Manche Böden können zu Haltestellen gehören.
+	 * Manche Bï¿½den kï¿½nnen zu Haltestellen gehï¿½ren.
 	 * @author Hj. Malthaner
 	 */
 	void set_halt(halthandle_t halt);
 
 	/**
-	 * Ermittelt, ob dieser Boden zu einer Haltestelle gehört.
+	 * Ermittelt, ob dieser Boden zu einer Haltestelle gehï¿½rt.
 	 * @return NULL wenn keine Haltestelle, sonst Zeiger auf Haltestelle
 	 * @author Hj. Malthaner
 	 */
@@ -665,7 +726,7 @@ void display_obj_fg(const sint16 xpos, const sint16 ypos, const bool is_global, 
 
 	/**
 	* Ermittelt die Richtungsbits furr den weg vom Typ 'typ' unmaskiert.
-	* Dies wird beim Bauen ben÷tigt. Furr die Routenfindung werden die
+	* Dies wird beim Bauen benï¿½tigt. Furr die Routenfindung werden die
 	* maskierten ribis benutzt.
 	* @author Hj. Malthaner/V. Meyer
 	*
@@ -686,7 +747,7 @@ void display_obj_fg(const sint16 xpos, const sint16 ypos, const bool is_global, 
 	virtual sint8 get_weg_yoff() const { return 0; }
 
 	/**
-	* Hat der Boden mindestens ein weg_t-Objekt? Liefert false für Water!
+	* Hat der Boden mindestens ein weg_t-Objekt? Liefert false fï¿½r Water!
 	* @author V. Meyer
 	*/
 	inline bool hat_wege() const { return (flags&(has_way1|has_way2))!=0;}

@@ -581,9 +581,6 @@ void vehicle_base_t::calc_height(grund_t *gr)
 			}
 		}
 	}
-	else if(  !gr->is_visible()  ) {
-		set_image(IMG_EMPTY);
-	}
 	else {
 		// force a valid image above ground, with special handling of tunnel entraces
 		if (get_image() == IMG_EMPTY) {
@@ -1578,6 +1575,9 @@ grund_t* vehicle_t::hop_check()
 				dir = get_ribi(bd);
 			}
 			koord3d nextnext_pos = cnv->get_route()->at(route_index+1);
+			if ( nextnext_pos == get_pos() ) {
+				dbg->error("vehicle_t::hop_check", "route contains point (%s) twice for %s", nextnext_pos.get_str(), cnv->get_name());
+			}
 			uint8 new_dir = ribi_type(nextnext_pos-pos_next);
 			if((dir&new_dir)==0) {
 				// new one way sign here?
@@ -1687,9 +1687,8 @@ void vehicle_t::hop(grund_t* gr)
 
 	// check if arrived at waypoint, and update schedule to next destination
 	// route search through the waypoint is already complete
-//	if(  leading  &&  get_pos()==cnv->get_schedule_target()  ) { // leading turned off in vorfahren when reversing
 	if(  get_pos()==cnv->get_schedule_target()  ) {
-		if(  route_index+1 >= cnv->get_route()->get_count()  ) {
+		if(  route_index >= cnv->get_route()->get_count()  ) {
 			// we end up here after loading a game or when a waypoint is reached which crosses next itself
 			cnv->set_schedule_target( koord3d::invalid );
 		}

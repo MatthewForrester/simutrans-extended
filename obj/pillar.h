@@ -2,13 +2,13 @@
 #define obj_pillar_h
 
 #include "../simobj.h"
+#include "../descriptor/bridge_desc.h"
 
 /**
- * Brueckenteile (sichtbar)
+ * Brueckenteile (visible)
  *
  * Hj. Malthaner
  */
-class bridge_desc_t;
 class loadsave_t;
 class karte_t;
 

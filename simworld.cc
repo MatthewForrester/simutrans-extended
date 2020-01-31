@@ -575,6 +575,8 @@ void karte_t::destroy()
 		dbg->fatal( "karte_t::destroy()","Map cannot be cleanly destroyed in any rotation!" );
 	}
 
+	goods_in_game.clear();
+
 	DBG_MESSAGE("karte_t::destroy()", "label clear");
 	labels.clear();
 
@@ -759,7 +761,7 @@ void karte_t::init_tiles()
 
 	for(int i=0; i<MAX_PLAYER_COUNT ; i++) {
 		// old default: AI 3 passenger, other goods
-		players[i] = (i<2) ? new player_t(this,i) : NULL;
+		players[i] = (i<2) ? new player_t(i) : NULL;
 	}
 	active_player = players[0];
 	active_player_nr = 0;
@@ -2676,6 +2678,10 @@ void karte_t::enlarge_map(settings_t const* sets, sint8 const* const h_field)
 	 * the same height the adjacent old grid point was and lowering to the
 	 * same height again. This doesn't preserve the old area 100%, but it respects it
 	 * somehow.
+	 *
+	 * This does not work for water tiles as for them get_hoehe will return the
+	 * z-coordinate of the water surface, not the height of the underwater
+	 * landscape.
 	 */
 
 	sint32 i;
@@ -2933,6 +2939,8 @@ karte_t::karte_t() :
 	idle_time(0),
 	speed_factors_are_set(false)
 {
+	destroying = false;
+	
 	// length of day and other time stuff
 	ticks_per_world_month_shift = 20;
 	ticks_per_world_month = (1LL << ticks_per_world_month_shift);
@@ -4175,6 +4183,7 @@ void karte_t::local_set_tool( tool_t *tool_in, player_t * player )
 		selected_tool[player->get_player_nr()] = tool_in;
 	}
 	tool_in->flags = 0;
+	toolbar_last_used_t::last_used_tools->append( tool_in, player );
 }
 
 
@@ -8089,7 +8098,7 @@ DBG_MESSAGE("karte_t::save(loadsave_t *file)", "saved %i convois",convoi_array.g
 				}
 				else {
 					// simulate old ones ...
-					player_t *player = new player_t( this, i );
+					player_t *player = new player_t( i );
 					player->rdwr(file);
 					delete player;
 				}
@@ -8560,6 +8569,7 @@ DBG_MESSAGE("karte_t::load()","Savegame version is %d", file.get_version());
 		mute_sound(false);
 
 		tool_t::update_toolbars();
+		toolbar_last_used_t::last_used_tools->clear();
 		set_tool( tool_t::general_tool[TOOL_QUERY], get_active_player() );
 	}
 
@@ -9574,6 +9584,52 @@ halthandle_t karte_t::get_halt_koord_index(koord k, player_t *player, bool creat
 	return my_halt;
 }
 
+void karte_t::update_underground()
+{
+	DBG_MESSAGE( "karte_t::update_underground_map()", "" );
+	get_view()->clear_prepared();
+	world_view_t::invalidate_all();
+	set_dirty();
+}
+
+void karte_t::prepare_tiles(rect_t const &new_area, rect_t const &old_area) {
+	if (new_area == old_area) {
+		// area already prepared
+		return;
+	}
+
+	size_t const prepare_rects_capacity = rect_t::MAX_FRAGMENT_DIFFERENCE_COUNT;
+	rect_t prepare_rects[prepare_rects_capacity];
+	size_t const prepare_rects_length = new_area.fragment_difference(old_area, prepare_rects, prepare_rects_capacity);
+
+	// additional tiles to preapre for correct hiding behaviour
+	sint16 const prefix_tiles_x = min(grund_t::MAXIMUM_HIDE_TEST_DISTANCE, new_area.origin.x);
+	sint16 const prefix_tiles_y = min(grund_t::MAXIMUM_HIDE_TEST_DISTANCE, new_area.origin.y);
+
+	for(size_t rect_index = 0; rect_index < prepare_rects_length ; rect_index++) {
+		rect_t const & prepare_rect= prepare_rects[rect_index];
+
+		sint16 x_start = prepare_rect.origin.x;
+		sint16 const x_end = x_start + prepare_rect.size.x;
+		if (x_start == new_area.origin.x) {
+			x_start-= prefix_tiles_x;
+		}
+
+		sint16 y_start = prepare_rect.origin.y;
+		sint16 const y_end = y_start + prepare_rect.size.y;
+		if (y_start == new_area.origin.y) {
+			y_start-= prefix_tiles_y;
+		}
+
+		for (sint16 y = y_start ; y < y_end ; y++) {
+			for (sint16 x = x_start ; x < x_end ; x++) {
+				const planquadrat_t &tile = plan[y * cached_grid_size.x + x];
+				tile.update_underground();
+			}
+		}
+	}
+}
+ 
 void karte_t::calc_climate(koord k, bool recalc)
 {
 	planquadrat_t *pl = access(k);
@@ -9835,7 +9891,7 @@ void karte_t::mark_area( const koord3d pos, const koord size, const bool mark ) 
 void karte_t::reset_timer()
 {
 	// Reset timers
-	long last_tick_sync = dr_time();
+	sint32 last_tick_sync = dr_time();
 	mouse_rest_time = last_tick_sync;
 	sound_wait_time = AMBIENT_SOUND_INTERVALL;
 	intr_set_last_time(last_tick_sync);
@@ -10000,10 +10056,10 @@ const char *karte_t::init_new_player(uint8 new_player_in, uint8 type)
 	}
 	switch( type ) {
 		case player_t::EMPTY: break;
-		case player_t::HUMAN: players[new_player_in] = new player_t(this,new_player_in); break;
-		case player_t::AI_GOODS: players[new_player_in] = new ai_goods_t(this,new_player_in); break;
-		case player_t::AI_PASSENGER: players[new_player_in] = new ai_passenger_t(this,new_player_in); break;
-		default: return "Unknow AI type!";
+		case player_t::HUMAN: players[new_player_in] = new player_t(new_player_in); break;
+		case player_t::AI_GOODS: players[new_player_in] = new ai_goods_t(new_player_in); break;
+		case player_t::AI_PASSENGER: players[new_player_in] = new ai_passenger_t(new_player_in); break;
+		default: return "Unknown AI type!";
 	}
 	settings.set_player_type(new_player_in, type);
 	return NULL;
@@ -10019,7 +10075,7 @@ void karte_t::remove_player(uint8 player_nr)
 		nwc_chg_player_t::company_removed(player_nr);
 		// if default human, create new instace of it (to avoid crashes)
 		if(  player_nr == 0  ) {
-			players[0] = new player_t( this, 0 );
+			players[0] = new player_t( 0 );
 		}
 
 		// Reset all access rights

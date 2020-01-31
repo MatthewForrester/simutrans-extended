@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997 - 2001 Hansjörg Malthaner
+ * Copyright (c) 1997 - 2001 Hansjï¿½rg Malthaner
  *
  * This file is part of the Simutrans project under the artistic licence.
  * (see licence.txt)
@@ -402,7 +402,7 @@ bool color_gui_t::action_triggered( gui_action_creator_t *comp, value_t v)
 		grund_t::set_underground_mode(buttons[17].pressed ? grund_t::ugm_none : grund_t::ugm_all, inp_underground_level.get_value());
 		buttons[17].pressed = grund_t::underground_mode == grund_t::ugm_all;
 		// calc new images
-		welt->update_map();
+		welt->update_underground();
 		// renew toolbar
 		tool_t::update_toolbars();
 	}
@@ -431,7 +431,7 @@ bool color_gui_t::action_triggered( gui_action_creator_t *comp, value_t v)
 		grund_t::set_underground_mode(buttons[21].pressed ? grund_t::ugm_none : grund_t::ugm_level, inp_underground_level.get_value());
 		buttons[21].pressed = grund_t::underground_mode == grund_t::ugm_level;
 		// calc new images
-		welt->update_map();
+		welt->update_underground();
 		// renew toolbar
 		tool_t::update_toolbars();
 	}
@@ -450,7 +450,7 @@ bool color_gui_t::action_triggered( gui_action_creator_t *comp, value_t v)
 		if (grund_t::underground_mode == grund_t::ugm_level) {
 			grund_t::underground_level = inp_underground_level.get_value();
 			// calc new images
-			welt->update_map();
+			welt->update_underground();
 		}
 	}
 	else if ((buttons + 22) == comp) {

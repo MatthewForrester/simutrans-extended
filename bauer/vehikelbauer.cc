@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997 - 2002 Hansjörg Malthaner
+ * Copyright (c) 1997 - 2002 Hansjî’šg Malthaner
  *
  * This file is part of the Simutrans project under the artistic licence.
  * (see licence.txt)
@@ -245,7 +245,7 @@ const vehicle_desc_t *vehicle_builder_t::vehicle_search( waytype_t wt, const uin
 		struct best_t {
 			uint32 power;
 			uint16 payload_per_maintenance;
-			long index;
+			sint32 index;
 		} best, test;
 		best.index = -100000;
 

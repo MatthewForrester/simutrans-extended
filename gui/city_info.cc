@@ -538,8 +538,10 @@ void city_info_t::rdwr(loadsave_t *file)
 				mchart.hide_curve(i);
 			}
 		}
+
 		year_month_tabs.set_active_tab_index( tabstate );
 		allow_growth.pressed = stadt->get_citygrowth();
+		win_set_magic( this, (ptrdiff_t)stadt );
 		set_windowsize( size );
 		reset_city_name();
 		pax_destinations_last_change = stadt->get_pax_destinations_new_change();

@@ -34,14 +34,6 @@
 #	include <unistd.h>
 #endif
 
-// first: find out, which copy routines we may use!
-#ifdef  __GNUC__
-# if defined(__i686__)
-// default, but will only make a difference with display_fb_intern
-#  define USE_ASSEMBLER
-# endif
-#endif
-
 #ifdef MULTI_THREAD
 #include "../utils/simthread.h"
 
@@ -2363,12 +2355,12 @@ static void display_img_nc(KOORD_VAL h, const KOORD_VAL xp, const KOORD_VAL yp, 
 #ifdef LOW_LEVEL
 #ifdef SIM_BIG_ENDIAN
 					// low level c++ without any unrolling
-					while (runlen--) {
+					while(  runlen--  ) {
 						*sp++ = *p++;
 					}
 #else
 					// trying to merge reads and writes
-					if (runlen) {
+					if(  runlen  ) {
 						// align to 4 bytes, should use uintptr_t but not available
 						if (reinterpret_cast<size_t>(p) & 0x2) {
 							*p++ = *sp++;
@@ -3813,8 +3805,8 @@ static void display_fb_internal(KOORD_VAL xp, KOORD_VAL yp, KOORD_VAL w, KOORD_V
 		if (dirty) {
 			mark_rect_dirty_nc(xp, yp, xp + w - 1, yp + h - 1);
 		}
-#if defined(USE_ASSEMBLER)
-		// since only here assembler makes a difference ...
+#if defined USE_ASSEMBLER && defined __GNUC__ && defined __i686__
+		// GCC might not use "rep stos" so force its use
 		const uint32 longcolval = (colval << 16) | colval;
 		do {
 			unsigned int count = w;
@@ -3834,7 +3826,7 @@ static void display_fb_internal(KOORD_VAL xp, KOORD_VAL yp, KOORD_VAL w, KOORD_V
 				);
 			p += dx;
 		} while (--h);
-#elif defined(LOW_LEVEL)
+#elif defined LOW_LEVEL
 		// low level c++
 		const uint32 colvald = (colval << 16) | colval;
 		do {
@@ -4458,10 +4450,11 @@ int display_text_proportional_len_clip_rgb(KOORD_VAL x, KOORD_VAL y, const char*
 						if (dat & 0x01) dst[7] = color;
 					}
 #else
+
 					// high level c++
-					if (dat != 0) {
-						for (size_t dat_offset = 0; dat_offset < 8; dat_offset++) {
-							if ((dat & (0x80 >> dat_offset))) {
+					if(  dat  !=  0  ) {
+						for(  size_t dat_offset = 0 ; dat_offset < 8 ; dat_offset++  ) {
+							if(  (dat & (0x80 >> dat_offset))  ) {
 								dst[dat_offset] = color;
 							}
 						}
@@ -4607,7 +4600,6 @@ void display_ddd_proportional(KOORD_VAL xpos, KOORD_VAL ypos, KOORD_VAL width, K
 	display_vline_wh(xpos + width - 3, ypos - halfheight - hgt - 1, halfheight * 2 + 1, ddd_farbe - 1, dirty);
 
 	display_proportional(xpos + 2, ypos - halfheight + 1, text, ALIGN_LEFT, text_farbe, dirty);
-}
 
 
 /**

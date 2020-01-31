@@ -336,7 +336,7 @@ void path_explorer_t::full_instant_refresh()
 	compartment_t::reset_connexion_list();
 
 #ifdef DEBUG_EXPLORER_SPEED
-	unsigned long start, diff;
+	uint32 start, diff;
 	start = dr_time();
 #endif
 
@@ -1709,7 +1709,7 @@ void path_explorer_t::compartment_t::step()
 			}
 
 #ifdef DEBUG_COMPARTMENT_STEP
-			printf("\t\t\tPath searching -> %lu iterations takes :  %lu ms \n", static_cast<unsigned long>(iterations_processed), diff);
+			printf("\t\t\tPath searching -> %lu iterations takes :  %lu ms \n", static_cast<uint32>(iterations_processed), diff);
 #endif
 
 			if (via_index == transfer_count)

@@ -11,6 +11,7 @@
 #include "components/gui_button.h"
 #include "components/gui_label.h"
 #include "components/gui_chart.h"
+#include "components/gui_scrolled_list.h"
 #include "components/gui_scrollpane.h"
 #include "components/gui_tab_panel.h"
 

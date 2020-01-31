@@ -595,22 +595,22 @@ void schedule_gui_t::update_tool(bool set)
 
 void schedule_gui_t::update_selection()
 {
-	lb_load.set_color( COL_GREY3 );
+	lb_load.set_color( SYSCOL_BUTTON_TEXT_DISABLED );
 	numimp_load.disable();
 	numimp_load.set_value( 0 );
 	bt_wait_prev.disable();
-	lb_wait.set_color( COL_GREY3 );
-	lb_spacing.set_color( COL_GREY3 );
-	lb_spacing_as_clock.set_color( COL_GREY3 );
+	lb_wait.set_color( SYSCOL_BUTTON_TEXT_DISABLED );
+	lb_spacing.set_color( SYSCOL_BUTTON_TEXT_DISABLED );
+	lb_spacing_as_clock.set_color( SYSCOL_BUTTON_TEXT_DISABLED );
 	numimp_spacing.disable();
 	numimp_spacing_shift.disable();
 	sprintf(str_spacing_as_clock, "%s", translator::translate("off") );
-	lb_spacing_shift.set_color( COL_GREY3 );
-	lb_spacing_shift_as_clock.set_color( COL_GREY3 );
+	lb_spacing_shift.set_color( SYSCOL_BUTTON_TEXT_DISABLED );
+	lb_spacing_shift_as_clock.set_color( SYSCOL_BUTTON_TEXT_DISABLED );
 	sprintf(str_spacing_shift_as_clock, "%s", translator::translate("off") );
 
 	strcpy( str_parts_month, translator::translate("off") );
-	lb_waitlevel_as_clock.set_color( COL_GREY3 );
+	lb_waitlevel_as_clock.set_color( SYSCOL_BUTTON_TEXT_DISABLED );
 	bt_wait_next.disable();
 
 	if(  !schedule->empty()  ) {
@@ -673,9 +673,9 @@ bool schedule_gui_t::infowin_event(const event_t *ev)
 		// close combo box; we must do it ourselves, since the box does not receive outside events ...
 		line_selector.close_box();
 
-		if(  ev->my>=scrolly.get_pos().y+16  ) {
+		if(  ev->my>=scrolly.get_pos().y+D_TITLEBAR_HEIGHT  ) {
 			// we are now in the multiline region ...
-			const int line = ( ev->my - scrolly.get_pos().y + scrolly.get_scroll_y() - 16)/(LINESPACE+1);
+			const int line = ( ev->my - scrolly.get_pos().y + scrolly.get_scroll_y() - D_TITLEBAR_HEIGHT)/(LINESPACE+1);
 
 			if(  line >= 0 && line < schedule->get_count()  ) {
 				if(  IS_RIGHTCLICK(ev)  ||  ev->mx<16  ) {

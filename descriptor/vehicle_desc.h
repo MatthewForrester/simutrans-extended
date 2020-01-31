@@ -514,7 +514,7 @@ public:
 	 * If get_leader(0) == NULL then either all or no leaders are allowed.
 	 * To distinguish these cases check get_leader_count().
 	 */
-	const vehicle_desc_t *get_leader(int i) const
+	const vehicle_desc_t *get_leader(uint8 i) const
 	{
 		if(i < 0 || i >= leader_count) {
 			return NULL;
@@ -527,7 +527,7 @@ public:
 	 * If get_trailer(0) == NULL then either all or no followers are allowed.
 	 * To distinguish these cases check get_trailer_count().
 	 */
-	const vehicle_desc_t *get_trailer(int i) const
+	const vehicle_desc_t *get_trailer(uint8 i) const
 	{
 		if(i < 0 || i >= trailer_count) {
 			return NULL;
@@ -535,7 +535,7 @@ public:
 		return get_child<vehicle_desc_t>(get_add_to_node() + leader_count + i);
 	}
 
-	int get_trailer_count() const { return trailer_count; }
+	uint8 get_trailer_count() const { return trailer_count; }
 
 	/* returns true, if this veh can be before the next_veh
 	 * uses NULL to indicate end of convoi
@@ -560,7 +560,7 @@ public:
 			}
 		}
 
-		for( int i=0;  i<trailer_count;  i++  ) {
+		for( uint8 i=0;  i<trailer_count;  i++  ) {
 			vehicle_desc_t const* const veh = get_child<vehicle_desc_t>(get_add_to_node() + leader_count + i);
 			if(veh==next_veh) {
 				return true;
@@ -591,7 +591,7 @@ public:
 				}
 			}
 		}
-		for( int i=0;  i<leader_count;  i++  ) 
+		for( uint8 i=0;  i<leader_count;  i++  ) 
 		{
 			vehicle_desc_t const* const veh = get_child<vehicle_desc_t>(get_add_to_node() + i);
 			if(veh==prev_veh) 
@@ -603,11 +603,11 @@ public:
 		return false;
 	}
 
-	int get_leader_count() const { return leader_count; }
+	uint8 get_leader_count() const { return leader_count; }
 
 	// Returns the vehicle types to which this vehicle type may be upgraded.
 
-	const vehicle_desc_t *get_upgrades(int i) const
+	const vehicle_desc_t *get_upgrades(uint8 i) const
 	{
 		if(i < 0 || i >= upgrades)
 		{
@@ -616,7 +616,7 @@ public:
 		return get_child<vehicle_desc_t>(get_add_to_node() + trailer_count + leader_count + i);
 	}
 
-	int get_upgrades_count() const { return upgrades; }
+	uint8 get_upgrades_count() const { return upgrades; }
 	// returns this vehicle has available upgrades
 	// 1 = near future, 2 = already available          @Ranran
 	uint8 has_available_upgrade(const uint16 month_now, bool show_future = true) const;

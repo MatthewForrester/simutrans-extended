@@ -561,13 +561,13 @@ public:
 	 * gibt das pax-statistik-array für letzten monat zurück
 	 * @author Hj. Malthaner
 	 */
-	const sparse_tpl<unsigned char>* get_pax_destinations_old() const { return &pax_destinations_old; }
+	const sparse_tpl<uint8>* get_pax_destinations_old() const { return &pax_destinations_old; }
 
 	/**
 	 * gibt das pax-statistik-array für den aktuellen monat zurück
 	 * @author Hj. Malthaner
 	 */
-	const sparse_tpl<unsigned char>* get_pax_destinations_new() const { return &pax_destinations_new; }
+	const sparse_tpl<uint8>* get_pax_destinations_new() const { return &pax_destinations_new; }
 
 	/* this counter will increment by one for every change
 	 * => dialogs can question, if they need to update map
