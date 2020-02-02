@@ -30,12 +30,11 @@ template <class T> class vector_tpl;
 // maximum number of months to store information
 #define MAX_WAY_STAT_MONTHS 2
 
-// number of different statistics collected
-#define MAX_WAY_STATISTICS 2
-
 enum way_statistics {
-	WAY_STAT_GOODS   = 0, ///< number of goods transported over this way
-	WAY_STAT_CONVOIS = 1  ///< number of convois that passed this way
+	WAY_STAT_GOODS,		///< number of goods transported over this way
+	WAY_STAT_CONVOIS,	///< number of convois that passed this way
+	WAY_STAT_WAITING,	///< Number of vehicles waiting in a traffic jam on this way
+	MAX_WAY_STATISTICS
 };
 
 
@@ -466,6 +465,9 @@ public:
 
 	runway_directions get_runway_directions() const;
 	uint32 get_runway_length(bool is_36_18) const; 
+
+	void increment_traffic_stopped_counter() { statistics[0][WAY_STAT_WAITING] ++; }
+	uint32 get_congestion_percentage() const { return statistics[0][WAY_STAT_CONVOIS] + statistics[1][WAY_STAT_CONVOIS] ? ((statistics[0][WAY_STAT_WAITING] + statistics[1][WAY_STAT_WAITING]) * 100) / (statistics[0][WAY_STAT_CONVOIS] + statistics[1][WAY_STAT_CONVOIS]) : 0; }
 
 } GCC_PACKED;
 
