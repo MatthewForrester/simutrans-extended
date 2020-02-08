@@ -2687,7 +2687,7 @@ void stadt_t::step(uint32 delta_t)
 void stadt_t::step_heavy()
 {
 #ifndef MULTI_THREAD
-#undef MULTI_THREAD_ROUTE_PROCESSING
+#define MULTI_THREAD_ROUTE_PROCESSING 1
 #endif
 #ifdef MULTI_THREAD
 	int error = pthread_mutex_lock(&karte_t::private_car_store_route_mutex);
