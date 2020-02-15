@@ -25,6 +25,6 @@ This sign is bidirectional.
 <em>End of choose sign</em><br>
 This sign serves two functions:<br>
 1 - It is used to exclude a platform from the choose signal so that only trains with that specific platform in their schedule will use it.<br>
-2 - It is used to mark the end of a station when the choose signal is finding a path through a station. For this functionality to work, this sign must be placed outside all exits of a station.<br>
+2 - It is used to mark the end of a station when the choose signal is finding a path through a station. For this functionality to work, this sign must be placed outside all exits of a station. If an exit is missed, then the choose signal may assign non-stop trains to a platform at a subsequent station.<br>
 This sign is bidirectional.
 <br><br>
