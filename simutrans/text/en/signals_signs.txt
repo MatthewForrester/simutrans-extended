@@ -3,28 +3,28 @@
 <h1>Signals signs</h1><br><br>
 
 <em>Speed sign</em><br>
-The minimum speed that trains may pass this sign with. Used to ensure that no slow trains are traveling on high speed lines.<br>
-Sign is bidirectional.
+This determines the minimum speed at which trains may pass this sign with. It is used to ensure that no slow trains are traveling on high speed lines.<br>
+This sign is bidirectional.
 <br><br>
 
 <em>End of signalling sign</em><br>
 After this sign, a train will revert to the "drive by sight" working method. Any signals before this sign will reserve the path up until this sign.<br>
-Sign is unidirectional.
+This sign is unidirectional.
 <br><br>
 
 <em>One way sign</em><br>
-This sign forces trains to only drive in one direction on this track. This is very usefull on doubble tracks and passing loops, when you want traffic to go in each direction on separate tracks. This is also the sign that will end an directional reservation. Place this sign at the beginning of the passing loop to fast resolve the directional reservation, so other trains can reverse the reservation.<br>
-Sign is unidirectional.
+This sign forces trains to only drive in one direction on this track. This is very useful on double tracks and passing loops, when you want traffic in each direction to go on separate tracks. This is also the sign that will end a directional reservation. Place this sign at the beginning of the passing loop to fast resolve the directional reservation, so other trains can reverse the reservation.<br>
+This sign is unidirectional.
 <br><br>
 
 <em>Private gate</em><br>
-This "sign" or gate is usefull in multiplayer games when you have granted permission for other companies to use your track. If you want some peaces of track still to be private, you can place this sign/gate and check or uncheck which companies to grant acces in the info window for the sign/gate.<br>
-Sign is bidirectional.
+This "sign" or gate is useful in multiplayer games when you have granted permission for other companies to use your track. If you want some stretches of track to still be private, you can place this sign/gate and use the checkboxes in the info window for the sign/gate to grant or remove access to each company.<br>
+This sign is bidirectional.
 <br><br>
 
 <em>End of choose sign</em><br>
 This sign serves two functions:<br>
-1 - It is used to reserve a platform from the choose signal so only trains with that specific platform in its schedule will use it.<br>
-2 - It is used to mark the end of a station when the choose signal is finding a path through a station. For this functionallity to work, this sign must be placed outside all exits of a station.<br>
-Sign is bidirectional.
+1 - It is used to exclude a platform from the choose signal so that only trains with that specific platform in their schedule will use it.<br>
+2 - It is used to mark the end of a station when the choose signal is finding a path through a station. For this functionality to work, this sign must be placed outside all exits of a station.<br>
+This sign is bidirectional.
 <br><br>

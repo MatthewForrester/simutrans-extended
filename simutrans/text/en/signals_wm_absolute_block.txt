@@ -1,6 +1,6 @@
 <title>Signals working methods - Absolute block</title>
 
-<h1>Signals working methods - Absolut block</h1><br><br>
+<h1>Signals working methods - Absolute block</h1><br><br>
 
 <em>Absolute block</em><br>
 The absolute block system is the most basic and, perhaps, the easiest-to-use signalling available. It prevents two trains accessing the same block at the same time, it does not make directional reservations, and the reservation is released tile by tile when the train travels.<br>
