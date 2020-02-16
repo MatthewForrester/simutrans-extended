@@ -2,20 +2,20 @@
 
 <h1>General usage:</h1><br>
 <p>
--- Ctrl-click on signal icon brings up this gui.<br>
+-- Ctrl-click on signal icon brings up this window.<br>
 
--- Click-and-drag on track brings preview of signals to be built, release the mouse button to build. Signals will be built allowing trains to pass only in the direction you dragged the mouse.<br>
+-- Click-and-drag on the track shows a preview of signals to be built; release the mouse button to build the signals. Signals will be built allowing trains to pass only in the direction you dragged the mouse.<br>
 
--- In network games: first ctrl-click on the track and release mouse button. While you hold down mouse button and move the mouse, you see preview.  Release button again to build.<br>
+-- In network games: first Ctrl-click on the track and release the mouse button. While you hold down the mouse button and move the mouse, you will see a preview.  Release the button again to build.<br>
 </p>
 <h1>Parameters in this window:</h1>
 <p>
--- <em>Signal spacing:</em> how many tiles apart consecutive signals should be placed (diagonal count as 1/2 tile).
+-- <em>Signal spacing:</em> how many tiles apart consecutive signals should be placed (diagonals count as 1/2 tiles).
 This value is shown on the icon if the signal is selected.<br>
 
--- <em>Remove interm. signals:</em> if toggled, other signals on the way will be deleted.<br>
+-- <em>Remove interm. signals:</em> if toggled, all other signals on the way will be deleted.<br>
 
--- <em>Replace other signals:</em> if toggled, other signal on tiles we would like to build our signals on will be deleted.<br>
+-- <em>Replace other signals:</em> if toggled, existing signals will be deleted only on tiles that are due to receive new signals.<br>
 <br>
-These parameters can be set for all different signals independently.
+These parameters can be set independently for each different signal.
 </p>

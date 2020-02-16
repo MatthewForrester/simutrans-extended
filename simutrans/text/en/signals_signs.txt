@@ -12,7 +12,7 @@ After this sign, a train will revert to the "drive by sight" working method. Any
 This sign is unidirectional.
 <br><br>
 
-<em>One way sign</em><br>
+<em>One-way sign</em><br>
 This sign forces trains to only drive in one direction on this track. This is very useful on double tracks and passing loops, when you want traffic in each direction to go on separate tracks. This is also the sign that will end a directional reservation. Place this sign at the beginning of the passing loop to fast resolve the directional reservation, so other trains can reverse the reservation.<br>
 This sign is unidirectional.
 <br><br>
