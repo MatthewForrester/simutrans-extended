@@ -3,7 +3,7 @@
 target=$1
 configuration_file="config."
 
-if [ "-n $target" ]
+if [[ -n ${target} ]]
 then
     echo -e "Missing configuration parameter. \n Please add the name of the configuration file you wish to use. \n For example, if your configuration file is config.linux, then enter 'simumake linux'"
 else
@@ -33,11 +33,11 @@ else
                     echo "Configuration copied."
 
 
-                    branch=$(git branch --show-current)
+                    branch=$(git rev-parse --abbrev-ref HEAD)
 
                     echo $branch
 
-                    # make -j2
+                    # make -j2 2>
 
                 fi
 
