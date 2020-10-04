@@ -204,6 +204,11 @@ jobs:
         run: cp configs/config.${{ github.job }} config.default
       - name: Build
         run: make -j$(nproc)
+      - name: Upload Artifact (CI)
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.job }}-nightly
+          path: build/default/Simutrans-Extended.exe
 
 
   sim-mingw-gdi:
@@ -249,6 +254,11 @@ jobs:
         run: cp configs/config.${{ github.job }} config.default
       - name: Build
         run: make -j$(nproc)
+      - name: Upload Artifact (CI)
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.job }}-nightly
+          path: build/default/Simutrans-Extended.exe
 
 
   makeobj-mingw:
