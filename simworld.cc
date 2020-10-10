@@ -11198,7 +11198,8 @@ void karte_t::network_disconnect()
 	step_mode = NORMAL;
 	reset_timer();
 	clear_command_queue();
-	create_win( display_get_width()/2-128, 40, new news_img("Lost synchronisation\nwith server."), w_info, magic_none);
+	create_win( display_get_width()/2-128, 80, new news_img("Lost synchronisation\nwith server.\nThis is placeholder text."), w_info, magic_none);
+	dbg->warning("karte_t::network_disconnect()", "This is a test. Random flags: %d", get_random_mode());
 	ticker::add_msg( translator::translate("Lost synchronisation\nwith server."), koord::invalid, COL_BLACK );
 	last_active_player_nr = active_player_nr;
 	set_pause(true);
