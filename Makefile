@@ -610,9 +610,7 @@ ifneq ($(findstring $(OSTYPE), cygwin mingw32 mingw64),)
     WINDRES ?= windres -F pe-i386
   else
     ifeq ($(OSTYPE), mingw64)
-      # WINDRES ?= x86_64-w64-mingw32-windres
-      # MSYS2 does not use the above name for its resource compiler; for discussion see https://forum.simutrans.com/index.php/topic,20271.msg190909.html#msg190909
-      WINDRES ?= windres
+      WINDRES ?= x86_64-w64-mingw32-windres
     endif
   endif
 endif
