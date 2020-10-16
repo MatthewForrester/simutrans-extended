@@ -204,6 +204,11 @@ jobs:
         run: cp configs/config.${{ github.job }} config.default
       - name: Build
         run: make -j$(nproc)
+      - name: Upload Artifact (CI)
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.job }}-nightly
+          path: build/default/Simutrans-Extended.exe
 
 
   sim-mingw-gdi:
@@ -234,6 +239,26 @@ jobs:
         run: cp configs/config.${{ github.job }} config.default
       - name: Build
         run: make -j$(nproc)
+
+
+  sim-mingw-debug-sdl2:
+    name: Windows (Debug mingw, SDL2, multi-threaded)
+    runs-on: ubuntu-latest
+    needs: [check-code-formatting]
+    container:
+      image: ceeac/simutrans-build-env:mingw-sdl2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Configure
+        run: cp configs/config.${{ github.job }} config.default
+      - name: Build
+        run: make -j$(nproc)
+      - name: Upload Artifact (CI)
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.job }}-nightly
+          path: build/default/Simutrans-Extended.exe
 
 
   makeobj-mingw:
