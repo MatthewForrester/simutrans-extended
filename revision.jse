@@ -39,7 +39,7 @@ try {
 	rev           = gitRevNum.StdOut.ReadAll();
 
 	// Check if Git output is valid
-	if (rev.length !== 9) {
+	if (rev.length !== 7) {
 		WSH.Echo("git : Not a git repository warning GitNR" + errorcode + ":Git output not valid! Check if the folder is actually versioned." + errormsg);
 		rev = 0;
 	}
