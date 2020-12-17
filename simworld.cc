@@ -8362,7 +8362,7 @@ void karte_t::save(const char *filename, bool autosave, const char *version_str,
 DBG_MESSAGE("karte_t::save()", "saving game to '%s'", filename);
 	loadsave_t  file;
 	std::string savename = filename;
-	savename[savename.length()-1] = '_';
+	savename[savename.length()-1] = 'a';
 
 	display_show_load_pointer( true );
 	if(!file.wr_open( savename.c_str(), autosave ? loadsave_t::autosave_mode : loadsave_t::save_mode, autosave ? loadsave_t::autosave_level : loadsave_t::save_level, env_t::objfilename.c_str(), version_str, ex_version_str, ex_revision_str )) {
