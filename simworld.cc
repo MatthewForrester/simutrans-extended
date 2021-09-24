@@ -4859,6 +4859,10 @@ void karte_t::sync_list_t::sync_step(uint32 delta_t)
 	sync_step_running = true;
 	currently_deleting = NULL;
 
+	if(list.get_count() > 10) {
+		fprintf(stderr,"ss%u: ", world->get_sync_steps());
+	}
+
 	for(uint32 i=0; i<list.get_count();i++) {
 		sync_steppable *ss = list[i];
 		switch(ss->sync_step(delta_t)) {
@@ -4875,6 +4879,9 @@ void karte_t::sync_list_t::sync_step(uint32 delta_t)
 					list[i] = ss;
 				}
 		}
+	}
+	if(list.get_count() > 10) {
+		fprintf(stderr,"\n");
 	}
 	sync_step_running = false;
 }
