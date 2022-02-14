@@ -19,6 +19,9 @@
  */
 class gui_colorbox_t : public gui_component_t
 {
+protected:
+	PIXVAL color;
+
 	scr_coord_val height = D_INDICATOR_HEIGHT;
 	scr_coord_val width = D_INDICATOR_WIDTH;
 	bool size_fixed = false;
@@ -26,8 +29,6 @@ class gui_colorbox_t : public gui_component_t
 
 	scr_size max_size;
 
-protected:
-	PIXVAL color;
 	const char * tooltip;
 
 public:
@@ -140,6 +141,36 @@ public:
 		init();
 	}
 	void draw(scr_coord offset) OVERRIDE;
+};
+
+
+class gui_capacity_bar_t : public gui_colorbox_t
+{
+	PIXVAL bg_col;
+	uint16 capacity;
+	uint16 loading;
+	bool cylinder_style;
+
+public:
+	gui_capacity_bar_t(scr_size size, PIXVAL c = color_idx_to_rgb(COL_GREEN), bool size_fixed=true, bool cylinder_style = true):
+		gui_colorbox_t(c),
+		cylinder_style(cylinder_style)
+	{
+		gui_colorbox_t::set_size(size);
+		width = size.w; height = size.h;
+		set_size_fixed(size_fixed);
+		bg_col = color_idx_to_rgb(COL_GREY4);
+	}
+
+	void set_value(uint16 capacity, uint16 loading_amount) {
+		this->capacity = capacity;
+		loading = loading_amount;
+	};
+
+	void draw(scr_coord offset) OVERRIDE;
+
+	scr_size get_min_size() const OVERRIDE { return scr_size(width, height); };
+	scr_size get_max_size() const OVERRIDE { return gui_colorbox_t::get_max_size(); };
 };
 
 #endif

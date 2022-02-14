@@ -68,8 +68,10 @@ private:
 	gui_loadingbar_t loading_bar;
 	gui_speedbar_t speed_bar;
 	gui_routebar_t route_bar;
-	gui_image_t img_reverse_route;
+	sint32 next_reservation_index;
 	gui_chart_t chart;
+	gui_image_t img_reverse_route;
+
 	button_t button;
 	button_t follow_button;
 	button_t go_home_button;
@@ -143,8 +145,6 @@ public:
 	 */
 	void draw(scr_coord pos, scr_size size) OVERRIDE;
 
-	bool has_min_sizer() const OVERRIDE { return true; }
-
 	bool is_weltpos() OVERRIDE;
 
 	koord3d get_weltpos( bool set ) OVERRIDE;
@@ -155,6 +155,8 @@ public:
 	 * called when convoi was renamed
 	 */
 	void update_data() { reset_cnv_name(); set_dirty(); }
+
+	bool infowin_event(const event_t *ev) OVERRIDE;
 
 	void rdwr( loadsave_t *file ) OVERRIDE;
 

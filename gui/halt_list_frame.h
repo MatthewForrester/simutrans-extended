@@ -27,8 +27,26 @@ class halt_list_frame_t : public gui_frame_t , private action_listener_t
 public:
 	enum sort_mode_t {
 		nach_name,
-		nach_wartend,
+		by_waiting_pax,
+		by_waiting_mail,
+		by_waiting_goods,
 		nach_typ,
+		by_tiles,
+		by_capacity,
+		by_overcrowding_rate,
+		by_potential_pax,
+		by_potential_mail,
+		by_pax_happy_last_month,
+		by_pax_handled_last_month,
+		by_mail_delivered_last_month,
+		by_mail_handled_last_month,
+		by_goods_handled_last_month,
+		by_convoy_arrivals_last_month,
+		by_region,
+		by_surrounding_population,
+		by_surrounding_mail_demand,
+		by_surrounding_visitor_demand,
+		by_surrounding_jobs,
 		SORT_MODES
 	};
 
@@ -59,16 +77,18 @@ private:
 	player_t *m_player;
 
 	static const char *sort_text[SORT_MODES];
+	static const char *display_mode_text[halt_list_stats_t::HALTLIST_MODES];
 
 	uint32 last_world_stops;
 
 	/*
 	 * All gui elements of this dialog:
 	 */
-	gui_combobox_t	sortedby;
 	button_t sort_order;
 	button_t filter_on;
 	button_t filter_details;
+	button_t btn_show_mutual_use;
+	gui_combobox_t sortedby, cb_display_mode;
 	gui_scrolled_halt_list_t *scrolly;
 
 	/*
@@ -83,6 +103,7 @@ private:
 	static sort_mode_t sortby;
 	static bool sortreverse;
 
+	bool show_mutual_stops = false;
 	static uint32 filter_flags;
 
 	static char name_filter_value[64];
@@ -96,6 +117,7 @@ private:
 public:
 
 	static bool compare_halts(halthandle_t, halthandle_t);
+	static uint8 display_mode;
 
 	halt_list_frame_t();
 
@@ -142,8 +164,6 @@ public:
 	static void set_alle_ware_filter_an(int mode);
 
 	bool action_triggered(gui_action_creator_t*, value_t) OVERRIDE;
-
-	bool has_min_sizer() const OVERRIDE {return true;}
 
 	void map_rotate90( sint16 ) OVERRIDE { fill_list(); }
 

@@ -1163,7 +1163,7 @@ convoihandle_t way_info_t::get_reserved_convoy(const weg_t *way) const
 	}
 	waytype_t wt = way->get_waytype();
 	if (wt == track_wt || wt == monorail_wt || wt == maglev_wt || wt == tram_wt || wt == narrowgauge_wt || wt == air_wt) {
-		schiene_t *rail = (schiene_t *)way;
+		const schiene_t *rail = static_cast<const schiene_t *>(way);
 		return rail->get_reserved_convoi();
 	}
 	return convoihandle_t();

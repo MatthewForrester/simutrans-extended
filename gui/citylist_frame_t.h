@@ -69,8 +69,6 @@ class citylist_frame_t : public gui_frame_t, private action_listener_t
 
 	void draw(scr_coord pos, scr_size size) OVERRIDE;
 
-	bool has_min_sizer() const OVERRIDE {return true;}
-
 	const char *get_help_filename() const OVERRIDE {return "citylist_filter.txt"; }
 
 	static void set_sortierung(const citylist_stats_t::sort_mode_t& sm) { sortby = sm; }

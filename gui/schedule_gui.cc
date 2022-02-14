@@ -642,6 +642,9 @@ bool schedule_gui_t::infowin_event(const event_t *ev)
 	else if(  ev->ev_class == INFOWIN  &&  (ev->ev_code == WIN_TOP  ||  ev->ev_code == WIN_OPEN)  &&  schedule!=NULL  ) {
 		// just to be sure, renew the tools ...
 		update_tool( true );
+		if(  cnv.is_bound()  ) {
+			minimap_t::get_instance()->set_selected_cnv(cnv);
+		}
 	}
 
 	return gui_frame_t::infowin_event(ev);

@@ -294,10 +294,6 @@ void log_t::fatal(const char *who, const char *format, ...)
 	puts( buffer );
 #else
 	// not MAKEOBJ/NETTOOL
-#  ifdef MSG_LEVEL
-	int old_level = env_t::verbose_debug;
-#  endif
-
 	env_t::verbose_debug = log_t::LEVEL_FATAL; // no more window concerning messages
 
 	if(is_display_init()) {

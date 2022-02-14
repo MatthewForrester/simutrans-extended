@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "convoi_info_t.h"
+#include "minimap.h"
 #include "replace_frame.h"
 
 #include "../vehicle/air_vehicle.h"
@@ -39,10 +40,11 @@ sint16 convoi_info_t::tabstate = -1;
 static const char cost_type[BUTTON_COUNT][64] =
 {
 	"Free Capacity",
-	"Transported",
+	"Pax-km",
+	"Mail-km",
+	"Freight-km", // ton-km
 	"Distance",
 	"Average speed",
-	//"Maxspeed",
 	"Comfort",
 	"Revenue",
 	"Operation",
@@ -54,10 +56,11 @@ static const char cost_type[BUTTON_COUNT][64] =
 static const uint8 cost_type_color[BUTTON_COUNT] =
 {
 	COL_FREE_CAPACITY,
+	COL_LIGHT_PURPLE,
 	COL_TRANSPORTED,
+	COL_BROWN,
 	COL_DISTANCE,
 	COL_AVERAGE_SPEED,
-//	COL_MAXSPEED,
 	COL_COMFORT,
 	COL_REVENUE,
 	COL_OPERATION,
@@ -66,24 +69,26 @@ static const uint8 cost_type_color[BUTTON_COUNT] =
 	COL_PROFIT
 };
 
-static const bool cost_type_money[BUTTON_COUNT] =
+static const uint8 cost_type_money[BUTTON_COUNT] =
 {
-	false,
-	false,
-	false,
-	false,
-	//false,
-	false,
-	true,
-	true,
-	true,
-	true,
-	true
+	gui_chart_t::STANDARD,
+	gui_chart_t::PAX_KM,
+	gui_chart_t::KG_KM,
+	gui_chart_t::TON_KM,
+	gui_chart_t::DISTANCE,
+	gui_chart_t::STANDARD,
+	gui_chart_t::STANDARD,
+	gui_chart_t::MONEY,
+	gui_chart_t::MONEY,
+	gui_chart_t::MONEY,
+	gui_chart_t::MONEY,
+	gui_chart_t::MONEY
 };
 
 static uint8 statistic[convoi_t::MAX_CONVOI_COST] = {
-	convoi_t::CONVOI_CAPACITY, convoi_t::CONVOI_TRANSPORTED_GOODS, convoi_t::CONVOI_DISTANCE, convoi_t::CONVOI_AVERAGE_SPEED, convoi_t::CONVOI_COMFORT,
-	convoi_t::CONVOI_REVENUE, convoi_t::CONVOI_OPERATIONS, convoi_t::CONVOI_REFUNDS, convoi_t::CONVOI_WAYTOLL, convoi_t::CONVOI_PROFIT
+	convoi_t::CONVOI_CAPACITY, convoi_t::CONVOI_PAX_DISTANCE, convoi_t::CONVOI_MAIL_DISTANCE, convoi_t::CONVOI_PAYLOAD_DISTANCE,
+	convoi_t::CONVOI_DISTANCE, convoi_t::CONVOI_AVERAGE_SPEED, convoi_t::CONVOI_COMFORT, convoi_t::CONVOI_REVENUE,
+	convoi_t::CONVOI_OPERATIONS, convoi_t::CONVOI_REFUNDS, convoi_t::CONVOI_WAYTOLL, convoi_t::CONVOI_PROFIT
 };
 
 //bool convoi_info_t::route_search_in_progress=false;
@@ -136,6 +141,7 @@ void convoi_info_t::init(convoihandle_t cnv)
 	gui_frame_t::set_owner(cnv->get_owner());
 	cont_times_history.set_convoy(cnv);
 
+	minimap_t::get_instance()->set_selected_cnv(cnv);
 	set_table_layout(1,0);
 
 	// top part: speedbars, view, buttons
@@ -239,6 +245,10 @@ void convoi_info_t::init(convoihandle_t cnv)
 		replace_button.add_listener(this);
 
 		details_button.init(button_t::roundbox | button_t::flexible, "Details");
+		if (skinverwaltung_t::open_window) {
+			details_button.set_image(skinverwaltung_t::open_window->get_image_id(0));
+			details_button.set_image_position_right(true);
+		}
 		details_button.set_tooltip("Vehicle details");
 		details_button.add_listener(this);
 		add_component(&details_button);
@@ -294,7 +304,9 @@ void convoi_info_t::init(convoihandle_t cnv)
 	container_stats.add_table(4, int((convoi_t::MAX_CONVOI_COST+3) / 4))->set_force_equal_columns(true);
 
 	for (int cost = 0; cost<convoi_t::MAX_CONVOI_COST; cost++) {
-		uint16 curve = chart.add_curve( color_idx_to_rgb(cost_type_color[cost]), cnv->get_finance_history(), convoi_t::MAX_CONVOI_COST, statistic[cost], MAX_MONTHS, cost_type_money[cost], false, true, cost_type_money[cost]*2 );
+		const uint8 precision = cost_type_money[cost] == gui_chart_t::MONEY ? 2 : (cost_type_money[cost]==gui_chart_t::PAX_KM || cost_type_money[cost]==gui_chart_t::KG_KM || cost_type_money[cost]==gui_chart_t::TON_KM) ? 1 : 0;
+		uint16 curve = chart.add_curve( color_idx_to_rgb(cost_type_color[cost]), cnv->get_finance_history(), convoi_t::MAX_CONVOI_COST,
+			statistic[cost], MAX_MONTHS, cost_type_money[cost], false, true, precision);
 
 		button_t *b = container_stats.new_component<button_t>();
 		b->init(button_t::box_state_automatic  | button_t::flexible, cost_type[cost]);
@@ -307,7 +319,7 @@ void convoi_info_t::init(convoihandle_t cnv)
 
 	switch_mode.add_tab(&scroll_times_history, translator::translate("times_history"));
 
-	cnv->set_sortby(env_t::default_sortmode);
+	cnv->set_sortby( env_t::default_sortmode );
 
 	speed_bar.set_base(max_convoi_speed);
 	speed_bar.set_vertical(false);
@@ -315,6 +327,10 @@ void convoi_info_t::init(convoihandle_t cnv)
 
 	// we update this ourself!
 	route_bar.init(&cnv_route_index, 0);
+	if( cnv->get_vehicle_count()>0  &&  dynamic_cast<rail_vehicle_t *>(cnv->front()) ) {
+		// only for trains etc.
+		route_bar.set_reservation( &next_reservation_index );
+	}
 	route_bar.set_height(9);
 
 	update_labels();
@@ -547,7 +563,7 @@ void convoi_info_t::update_labels()
 	else if (welt->lookup(next_pos) && welt->lookup(next_pos)->get_depot() != NULL) {
 		halt_symbol_style=gui_schedule_entry_number_t::number_style::depot;
 	}
-	next_halt_number.init(schedule->get_current_stop(), halt_col_idx, halt_symbol_style);
+	next_halt_number.init(schedule->get_current_stop(), halt_col_idx, halt_symbol_style, next_pos);
 
 	// distance
 	sint32 cnv_route_index_left = cnv->get_route()->get_count() - 1 - cnv_route_index;
@@ -628,6 +644,7 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 	{
 		destroy_win(this);
 	}
+	next_reservation_index = cnv->get_next_reservation_index();
 
 	// make titlebar dirty to display the correct coordinates
 	if(cnv->get_owner()==welt->get_active_player()  &&  !welt->get_active_player()->is_locked()) {
@@ -748,10 +765,7 @@ void convoi_info_t::draw(scr_coord pos, scr_size size)
 */
 /*
 #ifdef DEBUG_PHYSICS
-		/*
-		 * Show braking distance
-		 */
-/*
+		// Show braking distance
 		{
 			const int pos_y = pos_y0 + 6 * LINESPACE; // line 7
 			const sint32 brk_meters = convoy.calc_min_braking_distance(convoy.get_weight_summary(), speed_to_v(cnv->get_akt_speed()));
@@ -848,6 +862,7 @@ void convoi_info_t::set_tab_opened()
  */
 bool convoi_info_t::action_triggered( gui_action_creator_t *comp,value_t /* */)
 {
+	minimap_t::get_instance()->set_selected_cnv(cnv);
 	if(  comp == &switch_mode  &&  get_windowsize().h == get_min_windowsize().h  ) {
 		set_tab_opened();
 		return true;
@@ -931,6 +946,15 @@ bool convoi_info_t::action_triggered( gui_action_creator_t *comp,value_t /* */)
 	}
 
 	return false;
+}
+
+
+bool convoi_info_t::infowin_event(const event_t *ev)
+{
+	if(  ev->ev_class == INFOWIN  &&  ev->ev_code == WIN_CLOSE  ) {
+		minimap_t::get_instance()->set_selected_cnv(convoihandle_t());
+	}
+	return gui_frame_t::infowin_event(ev);
 }
 
 

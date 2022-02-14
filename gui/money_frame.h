@@ -21,7 +21,7 @@
 #include "../player/simplay.h"
 #include "../utils/cbuffer_t.h"
 
-#define MAX_PLAYER_COST_BUTTON (17)
+#define MAX_PLAYER_COST_BUTTON (19)
 
 class money_frame_label_t;
 

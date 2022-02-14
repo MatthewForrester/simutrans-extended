@@ -107,6 +107,8 @@ private:
 	koord3d targetpos;
 	image_id img;
 
+	bool img_on_right=false;
+
 	// any click will go to this world
 	static karte_ptr_t welt;
 
@@ -145,8 +147,11 @@ public:
 	void set_targetpos( const koord k ); // assuming this is on map ground
 	void set_targetpos3d( const koord3d k ) { targetpos = k; }
 
-	// only relevant for imagebox
+	// relevant for imagebox, box and roundbox
 	void set_image(image_id id) { img = id; }
+	// Currently can only choose between the left and right edges,
+	// but in the future we could add options such as just to the left of the text.
+	void set_image_position_right(bool on_right) { img_on_right = on_right; }
 
 	/**
 	 * Set the displayed text of the button when not to translate

@@ -41,8 +41,6 @@ public:
 	const char *get_help_filename() const OVERRIDE {return "vehiclelist.txt"; }
 
 	bool action_triggered(gui_action_creator_t*, value_t) OVERRIDE;
-
-	bool has_min_sizer() const OVERRIDE { return true; }
 };
 
 

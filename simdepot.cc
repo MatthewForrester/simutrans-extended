@@ -307,7 +307,7 @@ void depot_t::append_vehicle(convoihandle_t &cnv, vehicle_t* veh, bool infront, 
 
 void depot_t::remove_vehicle(convoihandle_t cnv, int ipos)
 {
-	vehicle_t* veh = cnv->remove_vehicle_bei( ipos );
+	vehicle_t* veh = cnv->remove_vehicle_at( ipos );
 	if(  veh  ) {
 		vehicles.append( veh );
 	}
@@ -316,7 +316,7 @@ void depot_t::remove_vehicle(convoihandle_t cnv, int ipos)
 
 void depot_t::remove_vehicles_to_end(convoihandle_t cnv, int ipos)
 {
-	while(  vehicle_t* veh = cnv->remove_vehicle_bei( ipos )  ) {
+	while(  vehicle_t* veh = cnv->remove_vehicle_at( ipos )  ) {
 		vehicles.append( veh );
 	}
 }
@@ -506,7 +506,7 @@ bool depot_t::disassemble_convoi(convoihandle_t cnv, bool sell)
 	if(  cnv.is_bound()  ) {
 		if(  !sell  ) {
 			// store vehicles in depot
-			while(  vehicle_t* const v = cnv->remove_vehicle_bei(0)  ) {
+			while(  vehicle_t* const v = cnv->remove_vehicle_at(0)  ) {
 				v->discard_cargo();
 				v->set_leading(false);
 				v->set_last(false);

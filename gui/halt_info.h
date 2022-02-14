@@ -43,6 +43,66 @@ public:
 };
 
 /**
+ * Helper class to draw halt handled goods categories
+ */
+class gui_halt_handled_goods_images_t : public gui_container_t
+{
+	halthandle_t halt;
+public:
+	gui_halt_handled_goods_images_t(halthandle_t h);
+
+	void draw(scr_coord offset) OVERRIDE;
+
+	scr_size get_min_size() const OVERRIDE { return size; }
+	scr_size get_max_size() const OVERRIDE { return get_min_size(); }
+};
+
+class gui_halt_goods_demand_t : public gui_component_t
+{
+	halthandle_t halt;
+	slist_tpl<const goods_desc_t *> goods_list;
+	bool show_products=true;
+	uint32 old_fab_count=0;
+
+	void build_goods_list();
+
+public:
+	gui_halt_goods_demand_t(halthandle_t h, bool show_products);
+
+	void draw(scr_coord offset) OVERRIDE;
+
+	scr_size get_min_size() const OVERRIDE { return size; }
+	scr_size get_max_size() const OVERRIDE { return get_min_size(); }
+};
+
+class gui_halt_waiting_catg_t : public gui_container_t
+{
+	halthandle_t halt;
+	uint8 catg_index;
+	cbuffer_t buf;
+public:
+	gui_halt_waiting_catg_t(halthandle_t h, uint8 catg);
+
+	void draw(scr_coord offset) OVERRIDE;
+
+	scr_size get_min_size() const OVERRIDE { return size; }
+	scr_size get_max_size() const OVERRIDE { return get_min_size(); }
+};
+
+class gui_halt_waiting_summary_t : public gui_container_t
+{
+	halthandle_t halt;
+	cbuffer_t buf;
+public:
+	gui_halt_waiting_summary_t(halthandle_t h);
+
+	void draw(scr_coord offset) OVERRIDE;
+
+	scr_size get_min_size() const OVERRIDE { return size; }
+	scr_size get_max_size() const OVERRIDE { return get_min_size(); }
+};
+
+/**
  * Helper class to draw freight type capacity bar
  */
 class gui_halt_capacity_bar_t : public gui_container_t
@@ -82,7 +142,6 @@ public:
 
 	void draw(scr_coord offset) OVERRIDE;
 };
-
 
 /**
  * Main class: the station info window.
@@ -173,12 +232,21 @@ private:
 
 	void init(halthandle_t halt);
 
+	void activate_chart_buttons();
+
 	// for departure board
 	// return a its destination/origin stop
 	halthandle_t get_convoy_target_halt(convoihandle_t cnv);
 
 public:
 	enum sort_mode_t { by_destination = 0, by_via = 1, by_amount_via = 2, by_amount = 3, by_origin = 4, by_origin_sum = 5, by_destination_detil = 6, by_class_detail = 7, by_class_via = 8, by_line = 9, by_line_via = 10, SORT_MODES = 11 };
+	enum halt_freight_type_t { // freight capacity type (for chart/list)
+		ft_pax    = 0,
+		ft_mail   = 1,
+		ft_goods  = 2,
+		ft_others = 3
+	};
+
 
 	halt_info_t(halthandle_t halt = halthandle_t());
 
@@ -187,8 +255,6 @@ public:
 	const char * get_help_filename() const OVERRIDE {return "station.txt";}
 
 	void draw(scr_coord pos, scr_size size) OVERRIDE;
-
-	bool has_min_sizer() const OVERRIDE { return true; }
 
 	koord3d get_weltpos(bool) OVERRIDE;
 

@@ -53,7 +53,7 @@ static vector_tpl<sint32> bFilterStates;
 
 #define BUTTONSPACE max(D_BUTTON_HEIGHT, LINESPACE)
 
-#define FINANCE_TABLE_ROWS 11
+#define FINANCE_TABLE_ROWS 13
 
 static const char *cost_type_name[MAX_PLAYER_COST_BUTTON] =
 {
@@ -67,13 +67,15 @@ static const char *cost_type_name[MAX_PLAYER_COST_BUTTON] =
 	"Construction_Btn",
 	"Interest",
 	"Gross Profit",
-	"Transported",
+	"Pax-km",
 	"Cash",
 	"Assets",
 	"Net Wealth",
 	"Credit Limit",
 	"Solvency Limit",
-	"Margin (%)"
+	"Margin (%)",
+	"Mail-km",
+	"Freight-km"
 };
 
 static const char *cost_tooltip[MAX_PLAYER_COST_BUTTON] =
@@ -88,13 +90,15 @@ static const char *cost_tooltip[MAX_PLAYER_COST_BUTTON] =
   "Capital expenditure on infrastructure",
   "Cost of overdraft interest payments",
   "Total income less total expenditure",
-  "Number of units of passengers and goods transported",
+  "A measure of the amount of passengers transported, expressed in passenger-kilometre",
   "Total liquid assets",
   "Total capital assets, excluding liabilities",
   "Total assets less total liabilities",
   "The maximum amount that can be borrowed without prohibiting further capital outlays",
   "The maximum amount that can be borrowed without going bankrupt",
-  "Percentage of revenue retained as profit"
+  "Percentage of revenue retained as profit",
+  "A measure of the amount of mail transported, expressed in tonne-kilometre",
+  "A measure of the amount of freight transported, expressed in tonne-kilometre"
 };
 
 
@@ -110,35 +114,39 @@ static const uint8 cost_type_color[MAX_PLAYER_COST_BUTTON] =
 	COL_CONSTRUCTION,
 	COL_INTEREST,
 	COL_CASH_FLOW,
-	COL_TRANSPORTED,
+	COL_LIGHT_PURPLE,
 	COL_CASH,
 	COL_VEHICLE_ASSETS,
 	COL_WEALTH,
 	COL_SOFT_CREDIT_LIMIT,
 	COL_HARD_CREDIT_LIMIT,
-	COL_MARGIN
+	COL_MARGIN,
+	COL_TRANSPORTED,
+	COL_BROWN
 };
 
 
 static const uint8 cost_type[3*MAX_PLAYER_COST_BUTTON] =
 {
-	ATV_REVENUE_TRANSPORT,          TT_ALL, MONEY,    // Income
-	ATV_RUNNING_COST,               TT_ALL, MONEY,    // Vehicle running costs
-	ATV_VEHICLE_MAINTENANCE,        TT_ALL, MONEY,    // Vehicle monthly maintenance
-	ATV_INFRASTRUCTURE_MAINTENANCE, TT_ALL, MONEY,    // Upkeep
-	ATV_WAY_TOLL,                   TT_ALL, MONEY,
-	ATV_OPERATING_PROFIT,           TT_ALL, MONEY,
-	ATV_NEW_VEHICLE,                TT_ALL, MONEY,    // New vehicles
-	ATV_CONSTRUCTION_COST,          TT_ALL, MONEY,    // Construction
-	ATC_INTEREST,                   TT_MAX, MONEY,    // Interest paid servicing debt
-	ATV_PROFIT,                     TT_ALL, MONEY,
-	ATV_TRANSPORTED,                TT_ALL, STANDARD, // all transported goods
-	ATC_CASH,                       TT_MAX, MONEY,    // Cash
-	ATV_NON_FINANCIAL_ASSETS,       TT_ALL, MONEY,    // value of all vehicles and buildings
-	ATC_NETWEALTH,                  TT_MAX, MONEY,    // Total Cash + Assets
-	ATC_SOFT_CREDIT_LIMIT,          TT_MAX, MONEY,    // Maximum amount that can be borrowed
-	ATC_HARD_CREDIT_LIMIT,          TT_MAX, MONEY,    // Borrowing which will lead to insolvency
-	ATV_PROFIT_MARGIN,              TT_ALL, PERCENT
+	ATV_REVENUE_TRANSPORT,          TT_ALL, gui_chart_t::MONEY,    // Income
+	ATV_RUNNING_COST,               TT_ALL, gui_chart_t::MONEY,    // Vehicle running costs
+	ATV_VEHICLE_MAINTENANCE,        TT_ALL, gui_chart_t::MONEY,    // Vehicle monthly maintenance
+	ATV_INFRASTRUCTURE_MAINTENANCE, TT_ALL, gui_chart_t::MONEY,    // Upkeep
+	ATV_WAY_TOLL,                   TT_ALL, gui_chart_t::MONEY,
+	ATV_OPERATING_PROFIT,           TT_ALL, gui_chart_t::MONEY,
+	ATV_NEW_VEHICLE,                TT_ALL, gui_chart_t::MONEY,    // New vehicles
+	ATV_CONSTRUCTION_COST,          TT_ALL, gui_chart_t::MONEY,    // Construction
+	ATC_INTEREST,                   TT_MAX, gui_chart_t::MONEY,    // Interest paid servicing debt
+	ATV_PROFIT,                     TT_ALL, gui_chart_t::MONEY,
+	ATV_TRANSPORTED_PASSENGER,      TT_ALL, gui_chart_t::PAX_KM,   // all transported pax
+	ATC_CASH,                       TT_MAX, gui_chart_t::MONEY,    // Cash
+	ATV_NON_FINANCIAL_ASSETS,       TT_ALL, gui_chart_t::MONEY,    // value of all vehicles and buildings
+	ATC_NETWEALTH,                  TT_MAX, gui_chart_t::MONEY,    // Total Cash + Assets
+	ATC_SOFT_CREDIT_LIMIT,          TT_MAX, gui_chart_t::MONEY,    // Maximum amount that can be borrowed
+	ATC_HARD_CREDIT_LIMIT,          TT_MAX, gui_chart_t::MONEY,    // Borrowing which will lead to insolvency
+	ATV_PROFIT_MARGIN,              TT_ALL, gui_chart_t::PERCENT,
+	ATV_TRANSPORTED_MAIL,           TT_ALL, gui_chart_t::TON_KM_MAIL,  // all transported mail
+	ATV_TRANSPORTED_GOOD,           TT_ALL, gui_chart_t::TON_KM,   // all transported goods
 };
 
 static const sint8 cell_to_buttons[] =
@@ -148,46 +156,52 @@ static const sint8 cell_to_buttons[] =
 	2,  -1,  -1,  -1,  -1,
 	3,  -1,  -1,  -1,  -1,
 	4,  -1,  -1,  -1,  -1,
-	5,  -1,  -1,  11,  -1,
-	6,  -1,  -1,  12,  -1,
-	7,  -1,  -1,  13,  -1,
-	8,  -1,  -1,  14,  -1,
-	9,  -1,  -1,  15,  -1,
-	10, -1,  -1,  16,  -1
+	5,  -1,  -1,  -1,  -1,
+	6,  -1,  -1,  11,  -1,
+	7,  -1,  -1,  12,  -1,
+	8,  -1,  -1,  13,  -1,
+	9,  -1,  -1,  14,  -1,
+	10, -1,  -1,  15,  -1,
+	17,  -1,  -1,  16,  -1,
+	18,  -1,  -1,  -1,  -1
 };
 
 
 // money label types: tt, atv, current/previous, type
 static const uint16 label_type[] =
 {
-	TT_ALL, ATV_REVENUE_TRANSPORT,          0, MONEY,
-	TT_ALL, ATV_REVENUE_TRANSPORT,          1, MONEY,
-	TT_ALL, ATV_RUNNING_COST,               0, MONEY,
-	TT_ALL, ATV_RUNNING_COST,               1, MONEY,
-	TT_ALL, ATV_VEHICLE_MAINTENANCE,        0, MONEY,
-	TT_ALL, ATV_VEHICLE_MAINTENANCE,        1, MONEY,
-	TT_ALL, ATV_INFRASTRUCTURE_MAINTENANCE, 0, MONEY,
-	TT_ALL, ATV_INFRASTRUCTURE_MAINTENANCE, 1, MONEY,
-	TT_ALL, ATV_WAY_TOLL,                   0, MONEY,
-	TT_ALL, ATV_WAY_TOLL,                   1, MONEY,
-	TT_ALL, ATV_OPERATING_PROFIT,           0, MONEY,
-	TT_ALL, ATV_OPERATING_PROFIT,           1, MONEY,
-	TT_ALL, ATV_NEW_VEHICLE,                0, MONEY,
-	TT_ALL, ATV_NEW_VEHICLE,                1, MONEY,
-	TT_ALL, ATV_CONSTRUCTION_COST,          0, MONEY,
-	TT_ALL, ATV_CONSTRUCTION_COST,          1, MONEY,
-	TT_MAX, ATC_INTEREST,                   0, MONEY,
-	TT_MAX, ATC_INTEREST,                   1, MONEY,
-	TT_ALL, ATV_PROFIT,                     0, MONEY,
-	TT_ALL, ATV_PROFIT,                     1, MONEY,
-	TT_ALL, ATV_TRANSPORTED,                0, STANDARD,
-	TT_ALL, ATV_TRANSPORTED,                1, STANDARD,
-	TT_MAX, ATC_CASH,                       0, MONEY,
-	TT_ALL, ATV_NON_FINANCIAL_ASSETS,       0, MONEY,
-	TT_MAX, ATC_NETWEALTH,                  0, MONEY,
-	TT_MAX, ATC_SOFT_CREDIT_LIMIT,          0, MONEY,
-	TT_MAX, ATC_HARD_CREDIT_LIMIT,          0, MONEY,
-	TT_ALL, ATV_PROFIT_MARGIN,              0, PERCENT
+	TT_ALL, ATV_REVENUE_TRANSPORT,          0, gui_chart_t::MONEY,
+	TT_ALL, ATV_REVENUE_TRANSPORT,          1, gui_chart_t::MONEY,
+	TT_ALL, ATV_RUNNING_COST,               0, gui_chart_t::MONEY,
+	TT_ALL, ATV_RUNNING_COST,               1, gui_chart_t::MONEY,
+	TT_ALL, ATV_VEHICLE_MAINTENANCE,        0, gui_chart_t::MONEY,
+	TT_ALL, ATV_VEHICLE_MAINTENANCE,        1, gui_chart_t::MONEY,
+	TT_ALL, ATV_INFRASTRUCTURE_MAINTENANCE, 0, gui_chart_t::MONEY,
+	TT_ALL, ATV_INFRASTRUCTURE_MAINTENANCE, 1, gui_chart_t::MONEY,
+	TT_ALL, ATV_WAY_TOLL,                   0, gui_chart_t::MONEY,
+	TT_ALL, ATV_WAY_TOLL,                   1, gui_chart_t::MONEY,
+	TT_ALL, ATV_OPERATING_PROFIT,           0, gui_chart_t::MONEY,
+	TT_ALL, ATV_OPERATING_PROFIT,           1, gui_chart_t::MONEY,
+	TT_ALL, ATV_NEW_VEHICLE,                0, gui_chart_t::MONEY,
+	TT_ALL, ATV_NEW_VEHICLE,                1, gui_chart_t::MONEY,
+	TT_ALL, ATV_CONSTRUCTION_COST,          0, gui_chart_t::MONEY,
+	TT_ALL, ATV_CONSTRUCTION_COST,          1, gui_chart_t::MONEY,
+	TT_MAX, ATC_INTEREST,                   0, gui_chart_t::MONEY,
+	TT_MAX, ATC_INTEREST,                   1, gui_chart_t::MONEY,
+	TT_ALL, ATV_PROFIT,                     0, gui_chart_t::MONEY,
+	TT_ALL, ATV_PROFIT,                     1, gui_chart_t::MONEY,
+	TT_ALL, ATV_TRANSPORTED_PASSENGER,      0, gui_chart_t::PAX_KM,
+	TT_ALL, ATV_TRANSPORTED_PASSENGER,      1, gui_chart_t::PAX_KM,
+	TT_ALL, ATV_TRANSPORTED_MAIL,           0, gui_chart_t::TON_KM_MAIL,
+	TT_ALL, ATV_TRANSPORTED_MAIL,           1, gui_chart_t::TON_KM_MAIL,
+	TT_ALL, ATV_TRANSPORTED_GOOD,           0, gui_chart_t::TON_KM,
+	TT_ALL, ATV_TRANSPORTED_GOOD,           1, gui_chart_t::TON_KM,
+	TT_MAX, ATC_CASH,                       0, gui_chart_t::MONEY,
+	TT_ALL, ATV_NON_FINANCIAL_ASSETS,       0, gui_chart_t::MONEY,
+	TT_MAX, ATC_NETWEALTH,                  0, gui_chart_t::MONEY,
+	TT_MAX, ATC_SOFT_CREDIT_LIMIT,          0, gui_chart_t::MONEY,
+	TT_MAX, ATC_HARD_CREDIT_LIMIT,          0, gui_chart_t::MONEY,
+	TT_ALL, ATV_PROFIT_MARGIN,              0, gui_chart_t::PERCENT
 };
 
 static const sint8 cell_to_moneylabel[] =
@@ -197,12 +211,14 @@ static const sint8 cell_to_moneylabel[] =
 	-1,   4,   5,  -1,  -1,
 	-1,   6,   7,  -1,  -1,
 	-1,   8,   9,  -1,  -1,
-	-1,  10,  11,  -1,  22,
-	-1,  12,  13,  -1,  23,
-	-1,  14,  15,  -1,  24,
-	-1,  16,  17,  -1,  25,
-	-1,  18,  19,  -1,  26,
-	-1,  20,  21,  -1,  27,
+	-1,  10,  11,  -1,  -1,
+	-1,  12,  13,  -1,  26,
+	-1,  14,  15,  -1,  27,
+	-1,  16,  17,  -1,  28,
+	-1,  18,  19,  -1,  29,
+	-1,  20,  21,  -1,  30,
+	-1,  22,  23,  -1,  31,
+	-1,  24,  25,  -1,  -1,
 };
 
 
@@ -231,7 +247,7 @@ class money_frame_label_t : public gui_label_buf_t
 
 public:
 	money_frame_label_t(uint8 tt, uint8 t, uint8 lt, uint8 i, bool mon)
-	: gui_label_buf_t(lt == STANDARD ? SYSCOL_TEXT : MONEY_PLUS, lt != MONEY ? gui_label_t::right : gui_label_t::money_right)
+	: gui_label_buf_t(lt == gui_chart_t::STANDARD ? SYSCOL_TEXT : MONEY_PLUS, lt != gui_chart_t::MONEY ? gui_label_t::right : gui_label_t::money_right)
 	, transport_type(tt), type(t), label_type(lt), index(i), monthly(mon)
 	{
 	}
@@ -243,12 +259,24 @@ public:
 		PIXVAL color = value >= 0 ? (value > 0 ? MONEY_PLUS : SYSCOL_TEXT_UNUSED) : MONEY_MINUS;
 
 		switch (label_type) {
-			case MONEY:
+			case gui_chart_t::MONEY:
 				buf().append_money(value / 100.0);
 				break;
-			case PERCENT:
+			case gui_chart_t::PERCENT:
 				buf().append(value / 100.0, 2);
 				buf().append("%");
+				break;
+			case gui_chart_t::PAX_KM:
+				buf().append(value / 10.0, 0);
+				buf().append(translator::translate("pkm"));
+				break;
+			case gui_chart_t::TON_KM_MAIL:
+				buf().append(value / 1000.0, 2);
+				buf().append(translator::translate("tkm"));
+				break;
+			case gui_chart_t::TON_KM:
+				buf().append(value / 10.0, 0);
+				buf().append(translator::translate("tkm"));
 				break;
 			default:
 				buf().append(value * 1.0, 0);
@@ -624,7 +652,7 @@ money_frame_t::money_frame_t(player_t *player) :
 				if (cost >=0 ) {
 					// add chart line
 					const int curve_type = cost_type[3*cost+2];
-					const int curve_precision = curve_type == STANDARD ? 0 : 2;
+					const int curve_precision = (curve_type==gui_chart_t::STANDARD) ? 0 : (curve_type==gui_chart_t::MONEY||curve_type==gui_chart_t::PERCENT) ? 2: (curve_type == gui_chart_t::TON_KM_MAIL) ? 3 : 1;
 					sint16 curve = i == 0
 					? chart.add_curve(  color_idx_to_rgb(cost_type_color[cost]), *chart_table_year,  MAX_PLAYER_COST_BUTTON, cost, MAX_PLAYER_HISTORY_YEARS,  curve_type, false, true, curve_precision)
 					: mchart.add_curve( color_idx_to_rgb(cost_type_color[cost]), *chart_table_month, MAX_PLAYER_COST_BUTTON, cost, MAX_PLAYER_HISTORY_MONTHS, curve_type, false, true, curve_precision);
@@ -649,12 +677,14 @@ money_frame_t::money_frame_t(player_t *player) :
 					money_labels.append( current->new_component<money_frame_label_t>(label_type[4*l], label_type[4*l+1], label_type[4*l+3], label_type[4*l+2], i==1) );
 				}
 				else {
-					if (r >= 2  &&  r<=4  &&  c == 4) {
-						switch(r) {
-							case 2: current->new_component<gui_label_t>("This Month", SYSCOL_TEXT_HIGHLIGHT); break;
-							case 3: current->add_component(&maintenance_money); break;
-							case 4: current->new_component<gui_label_t>("This Year", SYSCOL_TEXT_HIGHLIGHT);
-						}
+					if (i == 1 && r == 2 && c == 3) {
+						current->new_component<gui_label_t>("Next Month", SYSCOL_TEXT_HIGHLIGHT);
+					}
+					else if (i == 1 && r == 3 && c == 3) {
+						current->add_component(&maintenance_money);
+					}
+					else if (r == 5 && c == 4) {
+						current->new_component<gui_label_t>("This Year", SYSCOL_TEXT_HIGHLIGHT);
 					}
 					else {
 						current->new_component<gui_empty_t>();
@@ -879,7 +909,7 @@ void money_frame_t::update_stats()
 	}
 	// - depot & vehicle
 	FOR(slist_tpl<depot_t*>, const depot, depot_t::get_depot_list()) {
-		if (depot->get_player_nr() == player->get_player_nr()) {
+		if (depot->get_owner_nr() == player->get_player_nr()) {
 			const uint8 tt_idx = finance_t::translate_waytype_to_tt(depot->get_waytype())-1;
 			tt_depot_counts[tt_idx]++;
 			total_depot_maintenance += welt->get_settings().maint_building * depot->get_tile()->get_desc()->get_level();

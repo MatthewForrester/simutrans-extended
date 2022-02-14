@@ -293,7 +293,7 @@ depotlist_frame_t::depotlist_frame_t(player_t *player) :
 
 			// waytype buttons
 			// All waytype button
-			filter_buttons[0].init(button_t::roundbox_state, translator::translate("All"), scr_coord(0, 0), scr_size(proportional_string_width(translator::translate("All")) + gui_theme_t::gui_button_text_offset.w + gui_theme_t::gui_button_text_offset_right.x, D_BUTTON_HEIGHT));
+			filter_buttons[0].init(button_t::roundbox_state, translator::translate("All"), scr_coord(0, 0), scr_size(proportional_string_width(translator::translate("All")) + D_BUTTON_PADDINGS_X, D_BUTTON_HEIGHT));
 			filter_buttons[0].pressed = (depot_type_filter_bits == 255);
 			filter_buttons[0].add_listener(this);
 			add_component(&filter_buttons[0]);

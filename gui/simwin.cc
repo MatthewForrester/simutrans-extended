@@ -80,7 +80,6 @@ class inthashtable_tpl<ptrdiff_t,scr_coord, N_BAGS_MEDIUM> old_win_pos;
 // hash-table: magic number to windowsize
 class inthashtable_tpl<ptrdiff_t, scr_size, N_BAGS_MEDIUM> saved_windowsizes;
 
-#define dragger_size 12
 
 // I added a button to the map window to fix it's size to the best one.
 // This struct is the flow back to the object of the refactoring.
@@ -389,7 +388,8 @@ static void win_draw_window_dragger(scr_coord pos, scr_size size)
 		display_color_img( dragger->get_id(), pos.x-dragger->get_pic()->w, pos.y-dragger->get_pic()->h, 0, false, false);
 	}
 	else {
-		for(  int x=0;  x<dragger_size;  x++  ) {
+		int dragger_size = min(D_DRAGGER_WIDTH, D_DRAGGER_HEIGHT);
+		for(  int x=1;  x<dragger_size;  x++  ) {
 			display_fillbox_wh_clip_rgb( pos.x-x, pos.y-dragger_size+x, x, 1, color_idx_to_rgb((x & 1) ? COL_BLACK : MN_GREY4), true);
 		}
 	}
@@ -650,6 +650,7 @@ void rdwr_all_win(loadsave_t *file)
 					case magic_labellist:      w = new labellist_frame_t(); break;
 					case magic_color_gui_t:    w = new color_gui_t(); break;
 					case magic_optionen_gui_t: w = new optionen_gui_t(); break;
+					case magic_signal_connector_gui_t: w = new optionen_gui_t(); break;
 
 					default:
 						if(  id>=magic_finances_t  &&  id<magic_finances_t+MAX_PLAYER_COUNT  ) {
@@ -681,7 +682,7 @@ void rdwr_all_win(loadsave_t *file)
 				p.rdwr(file);
 				uint8 win_type;
 				file->rdwr_byte( win_type );
-				create_win( p.x, p.y, w, (wintype)win_type, id );
+				create_win( p.x, p.y, w, (wintype)win_type, id, true );
 				bool sticky, rollup, locked;
 				file->rdwr_bool( sticky );
 				file->rdwr_bool( locked );
@@ -743,13 +744,10 @@ void win_clamp_xywh_position( scr_coord_val &x, scr_coord_val &y, scr_size wh, b
 			y = clip_rr.y + clip_rr.h - wh.h;
 		}
 	}
+
 	// now do not hide titlebar by menubar
-	if (x < clip_rr.x) {
-		x = clip_rr.x;
-	}
-	if (y < clip_rr.y) {
-		y = clip_rr.y;
-	}
+	x = max(x, clip_rr.x);
+	y = max(y, clip_rr.y);
 }
 
 
@@ -813,7 +811,6 @@ int create_win(scr_coord_val x, scr_coord_val y, gui_frame_t* const gui, wintype
 		win.flags.help = ( gui->get_help_filename() != NULL );
 		win.flags.prev = gui->has_prev();
 		win.flags.next = gui->has_next();
-		win.flags.size = gui->has_min_sizer();
 		win.flags.sticky = gui->has_sticky();
 		win.flags.locked = gui->has_sticky();
 		win.gui = gui;
@@ -876,11 +873,12 @@ int create_win(scr_coord_val x, scr_coord_val y, gui_frame_t* const gui, wintype
 		if (x == -1) {
 			move_to_full_view = true;
 			x = get_mouse_x() - gui->get_windowsize().w / 2;
-			y = get_mouse_y() - gui->get_windowsize().h / 2;
+			y = get_mouse_y() - gui->get_windowsize().h - get_tile_raster_width()/4;
 		}
 
 		// make sure window is on screen
 		win_clamp_xywh_position(x, y, gui->get_windowsize(), move_to_full_view);
+
 
 		win.pos = scr_coord(x,y);
 		win.dirty = true;
@@ -903,8 +901,8 @@ static void process_kill_list()
 {
 	FOR(vector_tpl<simwin_t>, & i, kill_list) {
 		if (inside_event_handling != i.gui) {
-			wins.remove(i);
 			destroy_framed_win(&i);
+			wins.remove(i);
 		}
 	}
 	kill_list.clear();
@@ -1116,8 +1114,10 @@ int top_win(int win, bool keep_state )
 void display_win(int win)
 {
 	// ok, now process it
-	gui_frame_t *comp = wins[win].gui;
+	gui_frame_t* comp = wins[win].gui;
 	scr_size size = comp->get_windowsize();
+	// minimising flag if resize allowed
+	wins[win].flags.size = (comp->get_resizemode() != 0);
 	scr_coord pos = wins[win].pos;
 	FLAGGED_PIXVAL title_color = (comp->get_titlecolor()&0xFFFF);
 	FLAGGED_PIXVAL text_color = env_t::front_window_text_color;
@@ -1492,11 +1492,14 @@ bool check_pos_win(event_t *ev)
 		tool_t::toolbar_tool[0]->get_tool_selector()->is_hit(x-menuoffset.x, y-menuoffset.y)  &&
 		y > menuoffset.y+D_TITLEBAR_HEIGHT  &&
 		ev->ev_class != EVENT_KEYBOARD) {
+
 		event_t wev = *ev;
-		translate_event(&wev, -menuoffset.x, -menuoffset.y);
+		wev.move_origin(menuoffset);
+
 		inside_event_handling = tool_t::toolbar_tool[0];
 		tool_t::toolbar_tool[0]->get_tool_selector()->infowin_event( &wev );
 		inside_event_handling = NULL;
+
 		// swallow event
 		return true;
 	}
@@ -1629,7 +1632,7 @@ bool check_pos_win(event_t *ev)
 						move_win(i, ev);
 						is_moving = i;
 					}
-					if(IS_RIGHTCLICK(ev)) {
+					if(IS_RIGHTCLICK(ev)  || IS_LEFTDBLCLK(ev)  ) {
 						wins[i].rollup ^= 1;
 						gui_frame_t *gui = wins[i].gui;
 						scr_size size = gui->get_windowsize();
@@ -1653,8 +1656,8 @@ bool check_pos_win(event_t *ev)
 
 					// resizer hit ?
 					const bool canresize = is_resizing>=0  ||
-												(ev->cx > wins[i].pos.x + size.w - dragger_size  &&
-												 ev->cy > wins[i].pos.y + size.h - dragger_size);
+												(ev->cx > wins[i].pos.x + size.w - D_DRAGGER_WIDTH  &&
+												 ev->cy > wins[i].pos.y + size.h - D_DRAGGER_HEIGHT);
 
 					if((IS_LEFTCLICK(ev)  ||  IS_LEFTDRAG(ev)  ||  IS_LEFTREPEAT(ev))  &&  canresize  &&  wins[i].gui->get_resizemode()!=gui_frame_t::no_resize) {
 						resize_win( i, ev );
@@ -1664,7 +1667,7 @@ bool check_pos_win(event_t *ev)
 						is_resizing = -1;
 						// click in Window
 						event_t wev = *ev;
-						translate_event(&wev, -wins[i].pos.x, -wins[i].pos.y);
+						wev.move_origin(wins[i].pos);
 						wins[i].gui->infowin_event( &wev );
 					}
 				}
@@ -1692,9 +1695,16 @@ void win_poll_event(event_t* const ev)
 		simgraph_resize( ev->new_window_size );
 		ticker::redraw();
 		tool_t::update_toolbars();
+		for( uint i = 0; i<wins.get_count(); i++ ) {
+			scr_coord_val x = wins[i].pos.x;
+			scr_coord_val y = wins[i].pos.y;
+			win_clamp_xywh_position( x, y, wins[i].gui->get_min_windowsize(), true );
+			wins[i].pos.x = x;
+			wins[i].pos.y = y;
+		}
 		wl->set_dirty();
 		wl->get_viewport()->metrics_updated();
-		ev->ev_class = EVENT_NONE;
+		ev->ev_class = IGNORE_EVENT;
 	}
 	// save and reload all windows (currently only used when a new theme is applied)
 	if(  ev->ev_class==EVENT_SYSTEM  &&  ev->ev_code==SYSTEM_RELOAD_WINDOWS  ) {
@@ -1711,7 +1721,7 @@ void win_poll_event(event_t* const ev)
 			}
 		}
 		wl->set_dirty();
-		ev->ev_class = EVENT_NONE;
+		ev->ev_class = IGNORE_EVENT;
 		ticker::redraw();
 	}
 	if(  ev->ev_class==EVENT_SYSTEM  &&  ev->ev_code==SYSTEM_THEME_CHANGED  ) {
@@ -1720,7 +1730,7 @@ void win_poll_event(event_t* const ev)
 		FOR(vector_tpl<simwin_t>, const& i, wins) {
 			i.gui->infowin_event(ev);
 		}
-		ev->ev_class = EVENT_NONE;
+		ev->ev_class = IGNORE_EVENT;
 		ticker::redraw();
 	}
 }
@@ -1743,46 +1753,36 @@ void win_display_flush(double konto)
 	scr_size menu_size(disp_width, env_t::iconsize.h);
 	scr_rect clip_rr(0, env_t::iconsize.h, disp_width, disp_height - env_t::iconsize.h);
 	switch (env_t::menupos) {
-	case MENU_TOP:
-		// pos default (see above)
-		// size default
-		// rect default
-		break;
-	case MENU_BOTTOM:
-		menu_pos = scr_coord(0, disp_height - env_t::iconsize.h);
-		// size default
-		clip_rr.y = 0;
-		break;
-	case MENU_LEFT:
-		// pos default (see above)
-		menu_size = scr_size(env_t::iconsize.w, disp_height-win_get_statusbar_height()-show_ticker*TICKER_HEIGHT);
-		clip_rr = scr_rect(env_t::iconsize.h, 0, disp_width - env_t::iconsize.w, disp_height);
-		break;
-	case MENU_RIGHT:
-		menu_pos.x = disp_width - env_t::iconsize.w;
-		menu_size = scr_size(env_t::iconsize.w, disp_height - win_get_statusbar_height()-show_ticker*TICKER_HEIGHT );
-		clip_rr = scr_rect(0, 0, disp_width - env_t::iconsize.w, disp_height);
-		break;
+		case MENU_TOP:
+			// pos default (see above)
+			// size default
+			// rect default
+			break;
+		case MENU_BOTTOM:
+			menu_pos = scr_coord(0, disp_height - env_t::iconsize.h);
+			// size default
+			clip_rr.y = 0;
+			break;
+		case MENU_LEFT:
+			// pos default (see above)
+			menu_size = scr_size(env_t::iconsize.w, disp_height-win_get_statusbar_height()-show_ticker*TICKER_HEIGHT);
+			clip_rr = scr_rect(env_t::iconsize.h, 0, disp_width - env_t::iconsize.w, disp_height);
+			break;
+		case MENU_RIGHT:
+			menu_pos.x = disp_width - env_t::iconsize.w;
+			menu_size = scr_size(env_t::iconsize.w, disp_height - win_get_statusbar_height()-show_ticker*TICKER_HEIGHT );
+			clip_rr = scr_rect(0, 0, disp_width - env_t::iconsize.w, disp_height);
+			break;
 	}
+
+	display_set_clip_wh( menu_pos.x, menu_pos.y, menu_size.w, menu_size.h );
 
 	if(  skinverwaltung_t::toolbar_background  &&  skinverwaltung_t::toolbar_background->get_image_id(0) != IMG_EMPTY  ) {
 		const image_id back_img = skinverwaltung_t::toolbar_background->get_image_id(0);
-		scr_coord_val w = env_t::iconsize.w;
-		scr_rect row = scr_rect( menu_pos, menu_size );
-		display_fit_img_to_width( back_img, w );
-		// tile it wide
-		while(  w <= row.w  ) {
-			display_color_img( back_img, row.x, row.y, 0, false, true );
-			row.x += w;
-			row.w -= w;
-		}
-		// for the rest we have to clip the rectangle
-		if(  row.w > 0  ) {
-			clip_dimension const cl = display_get_clip_wh();
-			display_set_clip_wh( cl.x, cl.y, max(0, min(row.get_right(), cl.xx) - cl.x), cl.h );
-			display_color_img( back_img, row.x, row.y, 0, false, true );
-			display_set_clip_wh( cl.x, cl.y, cl.w, cl.h );
-		}
+		display_fit_img_to_width( back_img, env_t::iconsize.w );
+
+		stretch_map_t imag = { {IMG_EMPTY, IMG_EMPTY, IMG_EMPTY}, {IMG_EMPTY, back_img, IMG_EMPTY}, {IMG_EMPTY, IMG_EMPTY, IMG_EMPTY} };
+		display_img_stretch(imag, scr_rect(menu_pos, menu_size));
 	}
 	else {
 		display_fillbox_wh_rgb( menu_pos.x, menu_pos.y, menu_size.w, menu_size.h, color_idx_to_rgb(MN_GREY2), false );
@@ -1791,7 +1791,6 @@ void win_display_flush(double konto)
 	tooltip_element = main_menu->is_hit( get_mouse_x()-menu_pos.x, get_mouse_y()-menu_pos.y) ? main_menu : NULL;
 	void *old_inside_event_handling = inside_event_handling;
 	inside_event_handling = main_menu;
-	display_set_clip_wh( menu_pos.x, menu_pos.y, menu_size.w, menu_size.h );
 	menu_pos.y -= D_TITLEBAR_HEIGHT;
 	main_menu->draw(menu_pos, menu_size);
 	inside_event_handling = old_inside_event_handling;
@@ -1827,7 +1826,10 @@ void win_display_flush(double konto)
 				uint32 elapsed_time;
 				if(  !tooltip_owner  ||  ((elapsed_time=dr_time()-tooltip_register_time)>env_t::tooltip_delay  &&  elapsed_time<=env_t::tooltip_delay+env_t::tooltip_duration)  ) {
 					const sint16 width = proportional_string_width(tooltip_text)+7;
-					display_ddd_proportional_clip(tooltip_xpos, tooltip_ypos, width, 0, env_t::tooltip_color, env_t::tooltip_textcolor, tooltip_text, true);
+					scr_coord_val x = tooltip_xpos;
+					scr_coord_val y = tooltip_ypos;
+					win_clamp_xywh_position( x, y, scr_size( width, (LINESPACE*9)/7 ), true );
+					display_ddd_proportional_clip( x, y, width, 0, env_t::tooltip_color, env_t::tooltip_textcolor, tooltip_text, true);
 					if(wl) {
 						wl->set_background_dirty();
 					}
@@ -1837,7 +1839,7 @@ void win_display_flush(double konto)
 				const sint16 width = proportional_string_width(static_tooltip_text.c_str())+7;
 				scr_coord_val x = get_mouse_x();
 				scr_coord_val y = get_mouse_y();
-				win_clamp_xywh_position(x, y, scr_size(width, LINESPACE + 2), true);
+				win_clamp_xywh_position(x, y, scr_size(width, (LINESPACE*9)/7), true);
 				display_ddd_proportional_clip(x, y, width, 0, env_t::tooltip_color, env_t::tooltip_textcolor, static_tooltip_text.c_str(), true);
 				if(wl) {
 					wl->set_background_dirty();

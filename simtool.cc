@@ -16,6 +16,7 @@
 #include "simconvoi.h"
 #include "gui/simwin.h"
 #include "display/viewport.h"
+#include "display/simgraph.h"
 
 #include "bauer/fabrikbauer.h"
 #include "bauer/vehikelbauer.h"
@@ -426,7 +427,7 @@ const char *tool_query_t::work( player_t *player, koord3d pos )
 		}
 
 		if(gr->get_depot()  &&  gr->get_depot()->get_owner()==player) {
-			int old_count = win_get_open_count();
+			const uint32 old_count = win_get_open_count();
 			gr->get_depot()->show_info();
 			// did some new window open?
 			if(env_t::single_info  &&  old_count!=win_get_open_count()) {
@@ -2392,7 +2393,7 @@ const char *tool_plant_tree_t::work( player_t *player, koord3d pos )
 
 		const tree_desc_t *desc = NULL;
 		bool check_climates = true;
-		bool random_age = false;
+		bool random_age = true;
 		if(default_param==NULL  ||  strlen(default_param)==0) {
 			desc = baum_t::random_tree_for_climate( welt->get_climate( k ) );
 		}
@@ -3472,6 +3473,10 @@ const char *tool_build_tunnel_t::check_pos( player_t *player, koord3d pos)
 			if(  !gr->is_visible()  ) {
 				// not visible
 				return "";
+			}
+			if (gr->find<tunnel_t>()) {
+				// there is tunnel present -> allow, no chance to guess building cost.
+				return NULL;
 			}
 			if( gr->ist_karten_boden() ) {
 				win_set_static_tooltip( translator::translate("No suitable ground!") );
@@ -5787,7 +5792,7 @@ const char *tool_build_station_t::work( player_t *player, koord3d pos )
 		}
 
 		default:
-			dbg->warning("tool_build_station_t::work()","tool called for illegal desc \"%\"", default_param );
+			dbg->warning("tool_build_station_t::work()","tool called for illegal desc \"%s\"", default_param );
 			msg = "Illegal station tool";
 	}
 	return msg;
@@ -7384,17 +7389,19 @@ const char *tool_build_factory_t::work( player_t *player, koord3d pos )
 		int streetdir = 0;
                 // Convert 'neighbors' indices to SENW bits
 		static int const neighbours_to_senw[] = { 0x0c, 0x08, 0x09, 0x01, 0x03, 0x02, 0x06, 0x04 };
+                static int const neighbours_to_diag[] = { 4, 8, 1, 8, 1, 2, 4, 2 };
 		for(  int i = 1;  i < 8;  i+=2  ) {
 			grund_t *gr2 = welt->lookup_kartenboden(k + koord::neighbours[i]);
 			if(  gr2  &&  gr2->get_weg_hang() == gr2->get_grund_hang()  &&  gr2->get_weg(road_wt) != NULL  ) {
-				streetdir |= neighbours_to_senw[i];
+                          streetdir |= neighbours_to_senw[i];
 			}
 		}
                 if (streetdir == 0) { // No adjacent streets; check diagonally
                   for(  int i = 0;  i < 8;  i+=2  ) {
                     grund_t *gr2 = welt->lookup_kartenboden(k + koord::neighbours[i]);
                     if(  gr2  &&  gr2->get_weg_hang() == gr2->get_grund_hang()  &&  gr2->get_weg(road_wt) != NULL  ) {
-                      streetdir |= neighbours_to_senw[i];
+                      int ribi_ns = ((int)gr2->get_weg_ribi_unmasked(road_wt) & 0x05) ? 1 : 0;
+                      streetdir |= neighbours_to_diag[ i + ribi_ns ];
                     }
                   }
                 }
@@ -8719,20 +8726,24 @@ bool tool_quit_t::init( player_t * )
 
 bool tool_screenshot_t::init( player_t * )
 {
-	if(  is_ctrl_pressed()  ) {
-		if(  const gui_frame_t * topwin = win_get_top()  ) {
-			const scr_coord k = win_get_pos(topwin);
-			const scr_size size = topwin->get_windowsize();
-			display_snapshot( k.x, k.y, size.w, size.h );
-		}
-		else {
-			display_snapshot( 0, 0, display_get_width(), display_get_height() );
-		}
+	bool ok;
+	const scr_rect screen_area = scr_rect(0, 0, display_get_width(), display_get_height());
+	const gui_frame_t *topwin = win_get_top();
+
+	if(  is_ctrl_pressed()  &&  topwin != NULL  ) {
+		ok = display_snapshot( scr_rect(win_get_pos(topwin), topwin->get_windowsize()) );
 	}
 	else {
-		display_snapshot( 0, 0, display_get_width(), display_get_height() );
+		ok = display_snapshot( screen_area );
 	}
-	create_win( new news_img("Screenshot\ngespeichert.\n"), w_time_delete, magic_none);
+
+	if (ok) {
+		create_win( new news_img("Screenshot\ngespeichert.\n"), w_time_delete, magic_none);
+	}
+	else {
+		create_win( new news_img("Could not\ncreate screenshot!\n"), w_time_delete, magic_none);
+	}
+
 	return false;
 }
 
@@ -9220,7 +9231,7 @@ bool tool_change_line_t::init( player_t *player )
 						sint64 transported = 0, capacity = 0;
 						for(  int i=0;  i<6;  i++  ) {
 							capacity += line->get_finance_history( i , LINE_CAPACITY );
-							transported += line->get_finance_history( i , LINE_TRANSPORTED_GOODS );
+							transported += line->get_finance_history( i , LINE_PAX_DISTANCE );
 						}
 						// sanity check for non-moving lines
 						if(  capacity == 0  ) {
@@ -9712,10 +9723,10 @@ bool tool_change_traffic_light_t::init( player_t *player )
 					rs->set_ticks_offset( (uint8)ticks );
 				}
 				else if(  ns == 4  ) {
-					rs->set_ticks_amber_ns( (uint8)ticks );
+					rs->set_ticks_yellow_ns( (uint8)ticks );
 				}
 				else if(  ns == 3  ) {
-					rs->set_ticks_amber_ow( (uint8)ticks );
+					rs->set_ticks_yellow_ow( (uint8)ticks );
 				}
 				// update the window
 				if(  rs->get_desc()->is_traffic_light()  ) {

@@ -151,6 +151,8 @@ public:
 	/// image to indicate that the movement method is walking
 	static const skin_desc_t *on_foot;
 
+	/// image to clarify the function of buttons
+	static const skin_desc_t *open_window;
 
 
 	/// @name cursors

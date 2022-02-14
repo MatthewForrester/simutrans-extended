@@ -30,6 +30,7 @@ class image_t;
 #define D_BUTTON_HEIGHT        (gui_theme_t::gui_button_size.h)
 #define D_WIDE_BUTTON_SIZE     (scr_size(D_BUTTON_WIDTH*3/2,D_BUTTON_HEIGHT))
 #define D_WIDE_BUTTON_WIDTH    (D_BUTTON_WIDTH*3/2)
+#define D_BUTTON_PADDINGS_X    (gui_theme_t::gui_button_text_offset.w + gui_theme_t::gui_button_text_offset_right.x)
 
 #define D_FILTER_BUTTON_SIZE   (gui_theme_t::gui_color_button_size  )
 #define D_FILTER_BUTTON_WIDTH  (gui_theme_t::gui_color_button_size.w)
@@ -70,6 +71,10 @@ class image_t;
 #define D_GADGET_SIZE          (gui_theme_t::gui_gadget_size  )
 #define D_GADGET_WIDTH         (gui_theme_t::gui_gadget_size.w)
 #define D_GADGET_HEIGHT        (gui_theme_t::gui_gadget_size.h)
+
+#define D_DRAGGER_SIZE         (gui_theme_t::gui_dragger_size  )
+#define D_DRAGGER_WIDTH        (gui_theme_t::gui_dragger_size.w)
+#define D_DRAGGER_HEIGHT       (gui_theme_t::gui_dragger_size.h)
 
 #define D_INDICATOR_BOX_SIZE   (gui_theme_t::gui_indicator_size  )
 #define D_INDICATOR_BOX_HEIGHT (gui_theme_t::gui_indicator_size.h)
@@ -277,6 +282,7 @@ public:
 	static scr_size gui_edit_size;
 	static scr_size gui_indicator_size;
 	static scr_size gui_gadget_size;
+	static scr_size gui_dragger_size;
 	static scr_coord gui_focus_offset;
 	static scr_coord gui_color_button_text_offset_right; // extra right offset for the text (in case of asymmetric or buttons with color on the right)
 	static scr_coord gui_button_text_offset_right;       // extra right offset for the text (in case of asymmetric or buttons with checkmark on the right)

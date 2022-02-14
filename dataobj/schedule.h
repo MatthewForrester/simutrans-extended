@@ -96,7 +96,7 @@ public:
 	 */
 	uint8 get_current_stop() const { return current_stop; }
 
-	// always returns a valid entry to the current stop
+	/// returns the current stop, always a valid entry
 	schedule_entry_t const& get_current_entry() const { return current_stop >= entries.get_count() ? dummy_entry : entries[current_stop]; }
 
 	/**
@@ -108,7 +108,7 @@ public:
 		make_current_stop_valid();
 	}
 
-	// advance entry by one ...
+	/// advance current_stop by one
 	void advance() {
 		if(  !entries.empty()  ) {
 			current_stop = (current_stop+1)%entries.get_count();
@@ -176,12 +176,13 @@ public:
 	 */
 	bool append(const grund_t* gr, uint16 minimum_loading = 0, uint8 waiting_time_shift = 0, sint16 spacing_shift = 0, bool wait_for_time = false);
 
-	// cleanup a schedule, removes double entries
+	/**
+	 * Cleanup a schedule, removes double entries.
+	 */
 	void cleanup();
 
 	/**
-	 * entfern entries[current_stop] aus dem schedule
-	 * all folgenden Koordinaten verschieben sich dadurch
+	 * Remove current_stop entry from the schedule.
 	 */
 	bool remove();
 
@@ -260,6 +261,9 @@ public:
 	{
 		return schedule_type_text[get_type()];
 	};
+
+	// Distance to return to the first scheduled point
+	uint32 get_travel_distance() const;
 
 	/**
 	 * Append description of entry to buf.

@@ -98,11 +98,6 @@ void set_pointer(int)
 {
 }
 
-int dr_screenshot(const char *,int,int,int,int)
-{
-	return -1;
-}
-
 void GetEvents()
 {
 	if(  sigterm_received  ) {
@@ -111,14 +106,6 @@ void GetEvents()
 	}
 }
 
-
-void GetEventsNoWait()
-{
-	if(  sigterm_received  ) {
-		sys_event.type = SIM_SYSTEM;
-		sys_event.code = SYSTEM_QUIT;
-	}
-}
 
 void show_pointer(int)
 {

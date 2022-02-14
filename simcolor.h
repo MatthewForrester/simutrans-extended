@@ -121,7 +121,7 @@ typedef unsigned int FLAGGED_PIXVAL;
 #define COL_TOLL            COL_ORCHID
 #define COL_POWERLINES      46
 #define COL_CASH_FLOW       102
-#define COL_NEW_VEHICLES    COL_LIGHT_PURPLE
+#define COL_NEW_VEHICLES    COL_ORANGE
 #define COL_CONSTRUCTION    110
 #define COL_PROFIT          COL_HORIZON_BLUE
 #define COL_TRANSPORTED     COL_YELLOW

@@ -233,8 +233,6 @@ private:
 	// Opening and closing the button panel on the route tab
 	void open_close_catg_buttons();
 
-	bool has_min_sizer() const OVERRIDE { return true; }
-
 	void update_components();
 
 	void set_tab_opened();

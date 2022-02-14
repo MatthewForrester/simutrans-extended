@@ -42,6 +42,7 @@ private:
 public:
 	button_t toolbar_pos[4];
 	button_t reselect_closes_tool;
+	button_t info_window_toggler[8];
 
 	gui_settings_t();
 	void draw( scr_coord offset ) OVERRIDE;
@@ -100,8 +101,6 @@ private:
 
 public:
 	color_gui_t();
-
-	virtual bool has_min_sizer() const OVERRIDE {return true;}
 
 	/**
 	 * Some windows have associated help text.

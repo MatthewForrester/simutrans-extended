@@ -97,7 +97,6 @@ settings_t env_t::default_settings;
 // what finances are shown? (default bank balance)
 bool env_t::player_finance_display_account = true;
 
-
 // the following initialisation is not important; set values in init()!
 std::string env_t::objfilename;
 bool env_t::night_shift;
@@ -242,8 +241,8 @@ void env_t::init()
 
 	road_user_info = 1;
 	tree_info = true;
-	ground_info = false;
-	townhall_info = false;
+	ground_info = true;
+	townhall_info = true;
 	single_info = true;
 
 	window_buttons_right = false;
@@ -266,7 +265,6 @@ void env_t::init()
 	intercity_road_length = 512;
 
 	river_types = 0;
-
 
 	// autosave every x months (0=off)
 	autosave = 0;
@@ -335,6 +333,7 @@ void env_t::init()
 	listen.append_unique("0.0.0.0");
 	show_money_message = 0;
 }
+
 
 // save/restore environment
 void env_t::rdwr(loadsave_t *file)
@@ -579,7 +578,7 @@ void env_t::rdwr(loadsave_t *file)
 	}
 	if(  file->is_version_atleast(120, 6)  ) {
 		plainstring str = fontname.c_str();
-		file->rdwr_str(str);
+		file->rdwr_str( str );
 		if (file->is_loading()) {
 			fontname = str ? str.c_str() : "";
 		}

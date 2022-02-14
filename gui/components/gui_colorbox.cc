@@ -106,3 +106,36 @@ void gui_vehicle_number_t::draw(scr_coord offset)
 	display_veh_form_wh_clip_rgb(offset.x+size.w/2, offset.y+1, size.w/2-1, size.h-2, color, false, true,  flags_right, interactivity);
 	display_proportional_clip_rgb(offset.x+(size.w - proportional_string_width(buf))/2, offset.y+2, buf, ALIGN_LEFT, color_idx_to_rgb(COL_WHITE), false);
 }
+
+
+void gui_capacity_bar_t::draw(scr_coord offset)
+{
+	if (height < 2) { return; }
+	offset += gui_colorbox_t::pos;
+	if (show_frame) {
+		display_colorbox_with_tooltip(offset.x, offset.y, width, height, bg_col, true, tooltip);
+	}
+	else {
+		display_fillbox_wh_clip_rgb(offset.x+1, offset.y+1, width-2, height-2, bg_col, true);
+	}
+
+	if (capacity) {
+		scr_coord_val colored_width = ((width-2)*min(capacity,loading)+capacity-1)/capacity;
+		scr_coord_val overcrowded_width = loading > capacity ? min(width-2, ((width-2)*(loading-capacity) + loading-capacity - 1) / loading) : 0;
+
+		if (cylinder_style) {
+			display_cylinderbar_wh_clip_rgb(offset.x + 1, offset.y + 1, colored_width, height - 2, color, true);
+		}
+		else {
+			display_fillbox_wh_clip_rgb(offset.x + 1, offset.y + 1, colored_width, height - 2, color, true);
+		}
+		if (overcrowded_width) {
+			if (cylinder_style) {
+				display_cylinderbar_wh_clip_rgb(offset.x+width-1- overcrowded_width, offset.y + 1, overcrowded_width, height - 2, color_idx_to_rgb(COL_OVERCROWD), true);
+			}
+			else {
+				display_fillbox_wh_clip_rgb(offset.x+width-1- overcrowded_width, offset.y + 1, overcrowded_width, height - 2, color_idx_to_rgb(COL_OVERCROWD), true);
+			}
+		}
+	}
+}

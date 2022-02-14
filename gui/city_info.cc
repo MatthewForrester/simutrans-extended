@@ -47,7 +47,7 @@ public:
 		pax_dest_old(0,0),
 		pax_dest_new(0,0)
 	{
-		minimaps_size = scr_size(PAX_DESTINATIONS_SIZE, PAX_DESTINATIONS_SIZE); // default minimaps size
+		minimaps_size = scr_size(welt->get_size().x, welt->get_size().y); // default minimaps size
 		minimap2_offset = scr_coord(minimaps_size.w + D_H_SPACE, 0);
 	}
 	scr_size get_min_size() const OVERRIDE { return scr_size(PAX_DEST_MIN_SIZE*2 + D_H_SPACE, PAX_DEST_MIN_SIZE); }
@@ -157,7 +157,7 @@ const char *hist_type[MAX_CITY_HISTORY] =
 	"Growth",
 	"Buildings",
 	"Verkehrsteilnehmer",
-	"Transported",
+	"Travelled",
 	"Passagiere",
 	"Walked",
 	"sended",
@@ -255,7 +255,7 @@ void city_info_t::init()
 	//   skip electricity
 	for(  uint32 i = 0;  i<MAX_CITY_HISTORY;  i++  ) {
 		sint16 curve = chart.add_curve( color_idx_to_rgb(hist_type_color[i]), city->get_city_history_year(),
-			MAX_CITY_HISTORY, i, 12, STANDARD, (city->stadtinfo_options & (1<<i))!=0, true, 0 );
+			MAX_CITY_HISTORY, i, 12, gui_chart_t::STANDARD, (city->stadtinfo_options & (1<<i))!=0, true, 0 );
 		// add button
 		buttons[i] = container_year.new_component<button_t>();
 		buttons[i]->init(button_t::box_state_automatic | button_t::flexible, hist_type[i]);
@@ -279,7 +279,7 @@ void city_info_t::init()
 	container_month.add_table(BUTTONS_PER_ROW,int((MAX_CITY_HISTORY+(BUTTONS_PER_ROW-1))/BUTTONS_PER_ROW))->set_force_equal_columns(true);
 	for(  uint32 i = 0;  i<MAX_CITY_HISTORY;  i++  ) {
 		sint16 curve = mchart.add_curve( color_idx_to_rgb(hist_type_color[i]), city->get_city_history_month(),
-			MAX_CITY_HISTORY, i, 12, STANDARD, (city->stadtinfo_options & (1<<i))!=0, true, 0 );
+			MAX_CITY_HISTORY, i, 12, gui_chart_t::STANDARD, (city->stadtinfo_options & (1<<i))!=0, true, 0 );
 
 		// add button
 		container_month.add_component(buttons[i]);
@@ -377,15 +377,15 @@ void gui_city_minimap_t::add_pax_dest( array2d_tpl<PIXVAL> &pax_dest, const spar
 	PIXVAL color;
 	koord pos;
 	// how large the box in the world?
-	const sint16 dd_x = 1+(minimaps_size.w-1)/PAX_DESTINATIONS_SIZE;
-	const sint16 dd_y = 1+(minimaps_size.h-1)/PAX_DESTINATIONS_SIZE;
+	const sint16 dd_x = 1+(minimaps_size.w-1)/world()->get_size().x;
+	const sint16 dd_y = 1+(minimaps_size.h-1)/world()->get_size().y;
 
 	for(  uint16 i = 0;  i < city_pax_dest->get_data_count();  i++  ) {
 		city_pax_dest->get_nonzero(i, pos, color);
 
 		// calculate display position according to minimap size
-		const sint16 x0 = (pos.x*minimaps_size.w)/PAX_DESTINATIONS_SIZE;
-		const sint16 y0 = (pos.y*minimaps_size.h)/PAX_DESTINATIONS_SIZE;
+		const sint16 x0 = (pos.x*minimaps_size.w)/world()->get_size().x;
+		const sint16 y0 = (pos.y*minimaps_size.h)/world()->get_size().y;
 
 		for(  sint32 y=0;  y<dd_y  &&  y+y0<minimaps_size.h;  y++  ) {
 			for(  sint32 x=0;  x<dd_x  &&  x+x0<minimaps_size.w;  x++  ) {

@@ -152,6 +152,14 @@ void simgraph_exit();
 void simgraph_resize(scr_size new_window_size);
 void reset_textur(void *new_textur);
 
+// If the background color is dark, the white text will match.
+bool is_dark_color(PIXVAL color);
+bool is_dark_color(uint32 rgb);
+
+// Returns the brightness of the color from -128 to 127.
+// If it is greater than 0, black text will fit, if it is smaller, white text will fit.
+// The higher the positive value, the less visible the white text.
+sint8 get_color_brightness_index(PIXVAL color);
 
 /**
  * Loads the font, returns the number of characters in it
@@ -375,12 +383,9 @@ int display_text_proportional_len_clip_rgb(scr_coord_val x, scr_coord_val y, con
 #define display_proportional_clip_rgb(          x, y, txt, align, color, dirty)       display_text_proportional_len_clip_rgb( x, y, txt, align | DT_CLIP, color, dirty, -1 )
 
 
-/*
- * Display a string that is abbreviated by the (language specific) ellipsis character if too wide
- * If enough space is given, it just display the full string
- * @returns screen_width
- */
-scr_coord_val display_proportional_ellipsis_rgb( scr_rect r, const char *text, int align, const PIXVAL color, const bool dirty, bool shadowed = false, PIXVAL shadow_color = 0 );
+/// Display a string that is abbreviated by the (language specific) ellipsis character if too wide
+/// If enough space is given, it just display the full string
+void display_proportional_ellipsis_rgb( scr_rect r, const char *text, int align, const PIXVAL color, const bool dirty, bool shadowed = false, PIXVAL shadow_color = 0 );
 
 void display_ddd_proportional(scr_coord_val xpos, scr_coord_val ypos, scr_coord_val width, scr_coord_val hgt, FLAGGED_PIXVAL ddd_farbe, FLAGGED_PIXVAL text_farbe, const char *text, int dirty);
 
@@ -411,7 +416,7 @@ void display_swap_clip_wh(CLIP_NUM_DEF0);
 void display_pop_clip_wh(CLIP_NUM_DEF0);
 
 
-void display_snapshot( int x, int y, int w, int h );
+bool display_snapshot( const scr_rect &area );
 
 #if COLOUR_DEPTH != 0
 extern uint8 display_day_lights[  LIGHT_COUNT * 3];

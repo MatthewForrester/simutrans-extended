@@ -262,4 +262,26 @@ public:
 	scr_size get_max_size() const OVERRIDE { return get_min_size(); }
 };
 
+
+// Display the label along with the symbol.
+// The recommended symbol size should fit on the label.
+// Any font size should fit, that is, 12px in height (and 14px in width).
+class gui_label_with_symbol_t : public gui_label_buf_t
+{
+	image_id imageid;
+public:
+	gui_label_with_symbol_t(const char *text, const image_id i = IMG_EMPTY, PIXVAL color = SYSCOL_TEXT, align_t align = left) : gui_label_buf_t(color, align)
+	{
+		imageid = i;
+		set_text(text);
+		buf().append(text);
+	}
+
+	void draw(scr_coord offset) OVERRIDE;
+	void set_image(const image_id i) { imageid = i; };
+
+	scr_size get_min_size() const OVERRIDE;
+	scr_size get_max_size() const OVERRIDE;
+};
+
 #endif

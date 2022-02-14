@@ -61,10 +61,10 @@ char const *const NOTICE_DISABLED_PUBLIC_WAY = "Not allowed to make publicly own
 #define OLD_MAX_PLAYER_COST (21)
 
 /// number of years to keep history
-#define MAX_PLAYER_HISTORY_YEARS  (25)
+#define MAX_PLAYER_HISTORY_YEARS  (26)
 
 /// number of months to keep history
-#define MAX_PLAYER_HISTORY_MONTHS (25)
+#define MAX_PLAYER_HISTORY_MONTHS (26)
 
 
 /**

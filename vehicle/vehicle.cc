@@ -307,11 +307,11 @@ uint32 vehicle_base_t::do_drive(uint32 distance)
 		set_flag( obj_t::dirty );
 	}
 
-	uint32 distance_travelled; // Return value
-
 	grund_t *gr = NULL; // if hopped, then this is new position
 
 	uint32 steps_target = steps_to_do + (uint32)steps;
+
+	uint32 distance_travelled; // Return value
 
 	if(  steps_target > (uint32)steps_next  ) {
 		// We are going far enough to hop.
@@ -324,7 +324,7 @@ uint32 vehicle_base_t::do_drive(uint32 distance)
 		koord3d pos_prev;
 
 		// Hop as many times as possible.
-		while( steps_target > steps_next && (gr = hop_check()) ) {
+		while(  steps_target > steps_next  &&  (gr = hop_check())  ) {
 			// now do the update for hopping
 			steps_target -= steps_next+1;
 			steps_done += steps_next+1;
@@ -462,7 +462,7 @@ uint16 vehicle_base_t::get_tile_steps(const koord &start, const koord &ende, /*o
 // calcs new direction and applies it to the vehicles
 ribi_t::ribi vehicle_base_t::calc_set_direction(const koord3d& start, const koord3d& ende)
 {
-	ribi_t::ribi direction = ribi_t::none; //"direction" = direction (Google); "keine" = none (Google)
+	ribi_t::ribi direction = ribi_t::none;
 
 	const sint8 di = ende.x - start.x;
 	const sint8 dj = ende.y - start.y;
@@ -899,6 +899,22 @@ uint16 vehicle_t::unload_cargo(halthandle_t halt, sint64 & revenue_from_unloadin
 							total_freight -= tmp.menge;
 							cnv->invalidate_weight_summary();
 
+							if (tmp.is_passenger()) {
+								if (tmp.is_commuting_trip) {
+									halt->book(tmp.menge, HALT_COMMUTERS);
+								}
+								else {
+									halt->book(tmp.menge, HALT_VISITORS);
+								}
+							}
+							else if (tmp.is_mail()) {
+								halt->book(menge, HALT_MAIL_HANDLING_VOLUME);
+							}
+							else {
+								const sint64 unloading_volume = menge * tmp.get_desc()->get_weight_per_unit();
+								halt->book(unloading_volume / 10, HALT_GOODS_HANDLING_VOLUME);
+							}
+
 							// Calculate the revenue for each packet.
 							// Also, add to the "apportioned revenues" for way tolls.
 
@@ -1009,19 +1025,10 @@ uint16 vehicle_t::unload_cargo(halthandle_t halt, sint64 & revenue_from_unloadin
 	}
 
 	if(  sum_menge  ) {
-		// book transported goods
-		get_owner()->book_transported( sum_menge, get_desc()->get_waytype(), index );
-
 		if(  sum_delivered  ) {
 			// book delivered goods to destination
 			get_owner()->book_delivered( sum_delivered, get_desc()->get_waytype(), index );
 		}
-
-		// add delivered goods to statistics
-		cnv->book( sum_menge, convoi_t::CONVOI_TRANSPORTED_GOODS );
-
-		// add delivered goods to halt's statistics
-		halt->book( sum_menge, HALT_ARRIVED );
 	}
 	return sum_menge;
 }
@@ -3250,7 +3257,8 @@ void vehicle_t::display_after(int xpos, int ypos, bool is_global) const
 					display_proportional_clip_rgb(xpos+(bar_width_half*2-width+7+2)/2, idplate_yoff+1, nameplate_text, ALIGN_LEFT, color_idx_to_rgb(COL_WHITE), true);
 				}
 				else {
-					display_ddd_proportional_clip(xpos, ypos-yoff, width, 0, col_val, color_idx_to_rgb(COL_WHITE), nameplate_text, true);
+					// line/convoy name
+					display_ddd_proportional_clip(xpos, ypos-yoff, width, 0, col_val, is_dark_color(col_val) ? color_idx_to_rgb(COL_WHITE) : color_idx_to_rgb(COL_BLACK), nameplate_text, true);
 					// (*)display_ddd_proportional_clip's height is LINESPACE/2+1+1
 				}
 			}

@@ -136,9 +136,7 @@ bool citylist_stats_t::compare(const gui_component_t *aa, const gui_component_t 
 	assert(a != NULL && b != NULL);
 
 	if (sortreverse) {
-		const citylist_stats_t *temp = a;
-		a = b;
-		b = temp;
+		std::swap(a,b);
 	}
 
 	if (  sort_mode != sort_mode_t::SORT_BY_NAME  ) {

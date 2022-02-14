@@ -74,6 +74,21 @@ void display_mark_img_dirty(image_id, scr_coord_val, scr_coord_val)
 {
 }
 
+bool is_dark_color(PIXVAL)
+{
+	return true;
+}
+
+bool is_dark_color(uint32)
+{
+	return true;
+}
+
+sint8 get_color_brightness_index(PIXVAL)
+{
+	return 0;
+}
+
 bool display_load_font(const char*, bool)
 {
 	return true;
@@ -110,8 +125,9 @@ void register_image(image_t* image)
 	image->imageid = 1;
 }
 
-void display_snapshot(int, int, int, int)
+bool display_snapshot(const scr_rect &)
 {
+	return false;
 }
 
 void display_get_image_offset(image_id image, scr_coord_val *xoff, scr_coord_val *yoff, scr_coord_val *xw, scr_coord_val *yw)
@@ -410,10 +426,6 @@ void reset_textur(void *)
 {
 }
 
-void display_snapshot()
-{
-}
-
 void display_direct_line_rgb(const scr_coord_val, const scr_coord_val, const scr_coord_val, const scr_coord_val, const PIXVAL)
 {
 }
@@ -467,9 +479,8 @@ void display_img_aligned( const image_id, scr_rect, int, bool )
 {
 }
 
-scr_coord_val display_proportional_ellipsis_rgb( scr_rect, const char *, int, PIXVAL, bool, bool, PIXVAL)
+void display_proportional_ellipsis_rgb( scr_rect, const char *, int, PIXVAL, bool, bool, PIXVAL)
 {
-	return 0;
 }
 
 image_id get_image_count()

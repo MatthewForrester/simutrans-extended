@@ -184,8 +184,6 @@ private:
 	sint64 force_curves[SPEED_RECORDS][MAX_FORCE_CURVES];
 	uint8 te_curve_abort_x = SPEED_RECORDS;
 
-	bool has_min_sizer() const OVERRIDE { return true; }
-
 	void update_labels();
 
 	void init(convoihandle_t cnv);

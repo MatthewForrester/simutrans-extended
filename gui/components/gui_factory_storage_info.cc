@@ -79,7 +79,7 @@ void gui_factory_storage_info_t::draw(scr_coord offset)
 				left += STORAGE_INDICATOR_WIDTH + 2 + D_H_SPACE;
 
 				// [goods color box] This design is the same as the goods list
-				display_colorbox_with_tooltip(pos.x + offset.x + left, pos.y + offset.y + yoff + GOODS_COLOR_BOX_YOFF, GOODS_COLOR_BOX_HEIGHT, GOODS_COLOR_BOX_HEIGHT, goods_color, NULL);
+				display_colorbox_with_tooltip(pos.x + offset.x + left, pos.y + offset.y + yoff + GOODS_COLOR_BOX_YOFF, GOODS_COLOR_BOX_HEIGHT, GOODS_COLOR_BOX_HEIGHT, goods_color, false);
 				left += 12;
 				yoff -= 2; // box position adjistment
 
@@ -164,7 +164,7 @@ void gui_factory_storage_info_t::draw(scr_coord offset)
 				left += STORAGE_INDICATOR_WIDTH + 2 + D_H_SPACE;
 
 				// [goods color box] This design is the same as the goods list
-				display_colorbox_with_tooltip(pos.x + offset.x + left, pos.y + offset.y + yoff + GOODS_COLOR_BOX_YOFF, GOODS_COLOR_BOX_HEIGHT, GOODS_COLOR_BOX_HEIGHT, goods_color, NULL);
+				display_colorbox_with_tooltip(pos.x + offset.x + left, pos.y + offset.y + yoff + GOODS_COLOR_BOX_YOFF, GOODS_COLOR_BOX_HEIGHT, GOODS_COLOR_BOX_HEIGHT, goods_color, false);
 				left += 12;
 				yoff-=2; // box position adjistment
 
@@ -328,10 +328,10 @@ void gui_factory_connection_stat_t::draw(scr_coord offset)
 			}
 
 			// [status color bar]
-			if (fab->get_status() >= fabrik_t::staff_shortage) {
+			if (fab->is_staff_shortage()) {
 				display_ddd_box_clip_rgb(offset.x + xoff, offset.y + yoff + GOODS_COLOR_BOX_YOFF + 2, D_INDICATOR_WIDTH / 2, D_INDICATOR_HEIGHT + 2, COL_STAFF_SHORTAGE, COL_STAFF_SHORTAGE);
 			}
-			PIXVAL col_val = color_idx_to_rgb(fabrik_t::status_to_color[target_fab->get_status() % fabrik_t::staff_shortage]);
+			PIXVAL col_val = color_idx_to_rgb(fabrik_t::status_to_color[target_fab->get_status()]);
 			display_fillbox_wh_clip_rgb(offset.x + xoff + 1, offset.y + yoff + GOODS_COLOR_BOX_YOFF + 3, D_INDICATOR_WIDTH / 2 - 1, D_INDICATOR_HEIGHT, col_val, true);
 			xoff += D_INDICATOR_WIDTH / 2 + 3;
 
@@ -344,7 +344,7 @@ void gui_factory_connection_stat_t::draw(scr_coord offset)
 				xoff += 11;
 			}
 			// [goods color box] This design is the same as the goods list
-			display_colorbox_with_tooltip(offset.x + xoff, offset.y + yoff + GOODS_COLOR_BOX_YOFF, GOODS_COLOR_BOX_HEIGHT, GOODS_COLOR_BOX_HEIGHT, transport_goods->get_color(), NULL);
+			display_colorbox_with_tooltip(offset.x + xoff, offset.y + yoff + GOODS_COLOR_BOX_YOFF, GOODS_COLOR_BOX_HEIGHT, GOODS_COLOR_BOX_HEIGHT, transport_goods->get_color(), false);
 			xoff += 12;
 			// [distance]
 			col_val = is_within_own_network ? SYSCOL_TEXT : SYSCOL_TEXT_WEAK;

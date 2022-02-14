@@ -21,7 +21,7 @@
 
 class karte_ptr_t;
 
-#define MAP_MAX_BUTTONS (29)
+#define MAP_MAX_BUTTONS (31)
 
 /**
  * Minimap window
@@ -101,12 +101,6 @@ public:
 	const char * get_help_filename() const OVERRIDE {return "map.txt";}
 
 	/**
-	 * Does this window need a min size button in the title bar?
-	 * @return true if such a button is needed
-	 */
-	bool has_min_sizer() const OVERRIDE {return true;}
-
-	/**
 	 * Constructor. Adds all necessary Subcomponents.
 	 */
 	map_frame_t();
@@ -130,6 +124,8 @@ public:
 	void draw(scr_coord pos, scr_size size) OVERRIDE;
 
 	bool action_triggered(gui_action_creator_t*, value_t) OVERRIDE;
+
+	void enable_network_map();
 };
 
 #endif

@@ -9,9 +9,10 @@
 
 #include "gui_container.h"
 #include "gui_label.h"
+#include "gui_action_creator.h"
 
 #include "../../dataobj/translator.h"
-
+#include "../../dataobj/koord3d.h"
 
 class gui_colored_route_bar_t : public gui_component_t
 {
@@ -43,12 +44,13 @@ public:
 };
 
 
-class gui_schedule_entry_number_t : public gui_container_t
+class gui_schedule_entry_number_t : public gui_container_t, public gui_action_creator_t
 {
+	uint8 number;
 	uint8 p_color_idx;
 	uint8 style;
-	uint8 number;
 	gui_label_buf_t lb_number;
+	koord3d entry_pos;
 public:
 	enum number_style {
 		halt = 0,
@@ -58,11 +60,19 @@ public:
 		none
 	};
 
-	gui_schedule_entry_number_t(uint8 number, uint8 p_color_idx = 8, uint8 style_ = number_style::halt, scr_size size = scr_size(D_ENTRY_NO_WIDTH, D_ENTRY_NO_HEIGHT));
+	gui_schedule_entry_number_t(uint8 number, uint8 p_color_idx = 8, uint8 style_ = number_style::halt, scr_size size = scr_size(D_ENTRY_NO_WIDTH, D_ENTRY_NO_HEIGHT), koord3d entry_pos = koord3d::invalid);
+
+	bool infowin_event(event_t const*) OVERRIDE;
 
 	void draw(scr_coord offset) OVERRIDE;
 
-	void init(uint8 number_, uint8 color_idx, uint8 style_ = number_style::halt) { number = number_+1; p_color_idx = color_idx; style = style_; };
+	void init(uint8 number_, uint8 color_idx, uint8 style_ = number_style::halt, koord3d pos_ = koord3d::invalid)
+	{
+		number = number_+1;
+		p_color_idx = color_idx;
+		style = style_;
+		entry_pos = pos_;
+	};
 
 	void set_number_style(uint8 style_) { style = style_; };
 	void set_color(uint8 color_idx) { p_color_idx = color_idx; };

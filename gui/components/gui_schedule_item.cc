@@ -5,10 +5,13 @@
 
 #include "gui_schedule_item.h"
 
+#include "../../simworld.h"
+#include "../../simhalt.h"
+
 #include "../../dataobj/environment.h"
 #include "../../descriptor/skin_desc.h"
 #include "../../display/simgraph.h"
-
+#include "../../display/viewport.h"
 
 gui_colored_route_bar_t::gui_colored_route_bar_t(uint8 p_col, uint8 style_)
 {
@@ -89,13 +92,14 @@ void gui_colored_route_bar_t::draw(scr_coord offset)
 }
 
 
-gui_schedule_entry_number_t::gui_schedule_entry_number_t(uint8 number_, uint8 p_col, uint8 style_, scr_size size_)
+gui_schedule_entry_number_t::gui_schedule_entry_number_t(uint8 number_, uint8 p_col, uint8 style_, scr_size size_, koord3d pos_)
 {
 	number = number_ + 1;
 	style = style_;
 	p_color_idx = p_col;
 	size=size_;
 	set_size(size);
+	entry_pos = pos_;
 
 	lb_number.set_align(gui_label_t::centered);
 	lb_number.set_size(size);
@@ -149,6 +153,25 @@ void gui_schedule_entry_number_t::draw(scr_coord offset)
 	lb_number.set_fixed_width(size.w);
 
 	gui_container_t::draw(offset);
+}
+
+bool gui_schedule_entry_number_t::infowin_event(const event_t *ev)
+{
+	if(entry_pos != koord3d::invalid) {
+		if (IS_LEFTRELEASE(ev)) {
+			halthandle_t halt = haltestelle_t::get_halt(entry_pos, world()->get_public_player());
+			if (halt.is_bound()) {
+				halt->show_info();
+				return true;
+			}
+			return false;
+		}
+		else if (IS_RIGHTRELEASE(ev)) {
+			world()->get_viewport()->change_world_position(entry_pos);
+			return true;
+		}
+	}
+	return false;
 }
 
 gui_convoy_arrow_t::gui_convoy_arrow_t(PIXVAL col, scr_size size_)

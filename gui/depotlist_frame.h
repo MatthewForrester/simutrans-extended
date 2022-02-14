@@ -54,8 +54,6 @@ public:
 	// This is determined by whether the pakset has a vehicle.
 	static bool is_available_wt(waytype_t wt);
 
-	bool has_min_sizer() const OVERRIDE { return true; }
-
 	void map_rotate90( sint16 ) OVERRIDE { fill_list(); }
 };
 

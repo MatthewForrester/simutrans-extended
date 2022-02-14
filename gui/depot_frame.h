@@ -107,12 +107,6 @@ private:
 	 */
 	sint64 calc_sale_value(const vehicle_desc_t *veh_type);
 
-	/**
-	 * Does this window need a min size button in the title bar?
-	 * @return true if such a button is needed
-	 */
-	bool has_min_sizer() const OVERRIDE {return true;}
-
 	// true if already stored here
 	bool is_contained(const vehicle_desc_t *info);
 

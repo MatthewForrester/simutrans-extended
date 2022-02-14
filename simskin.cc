@@ -80,6 +80,7 @@ const skin_desc_t* skinverwaltung_t::reverse_arrows     = NULL;
 const skin_desc_t* skinverwaltung_t::waiting_time       = NULL; // waiting time at the station
 const skin_desc_t* skinverwaltung_t::service_frequency  = NULL; // line service frequency
 const skin_desc_t* skinverwaltung_t::on_foot            = NULL;
+const skin_desc_t* skinverwaltung_t::open_window        = NULL;
 
 // cursors
 const skin_desc_t* skinverwaltung_t::cursor_general     = NULL; // new cursors
@@ -142,6 +143,7 @@ static special_obj_tpl<skin_desc_t> const symbol_objekte[] = {
 	{ &skinverwaltung_t::waiting_time,       "WaitingTime"    },
 	{ &skinverwaltung_t::service_frequency,  "ServiceFrequency" },
 	{ &skinverwaltung_t::on_foot,            "OnFoot"         },
+	{ &skinverwaltung_t::open_window,        "OpenWindow"     },
 	{ &skinverwaltung_t::seasons_icons,      "Seasons"        },
 	{ &skinverwaltung_t::message_options,    "MessageOptions" },
 	{ &skinverwaltung_t::color_options,      "ColorOptions"   },
@@ -197,7 +199,7 @@ bool skinverwaltung_t::successfully_loaded(skintyp_t type)
 	switch (type) {
 		case menu:    return true; // skins will be handled elsewhere
 		case cursor:  sd = cursor_objekte;     break;
-		case symbol:  sd = symbol_objekte+14;  break;
+		case symbol:  sd = symbol_objekte+15;  break;
 		case misc:
 			sd = misc_objekte+3;
 			// for compatibility: use sidewalk as tunneltexture

@@ -495,7 +495,6 @@ public:
 	/// default is off
 	static bool hide_keyboard;
 
-
 	/// default settings
 	/// read in simmain.cc from various tab files
 	/// @see simmain.cc

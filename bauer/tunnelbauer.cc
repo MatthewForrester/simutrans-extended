@@ -323,14 +323,14 @@ const char *tunnel_builder_t::build( player_t *player, koord pos, const tunnel_d
 		}
 	}
 	if(  !slope_t::is_single(slope)  ) {
-		return "Tunnel muss an\nsingleem\nHang beginnen!\n";
+		return "Tunnel muss an\neinfachem\nHang beginnen!\n";
 	}
 
 /************************************** FIX ME ***************************************************
 ********************** THIS MUST BE RATHER A PROPERTY OF THE TUNNEL IN QUESTION ! ****************/
 	// for conversion factor 1, must be single height, for conversion factor 2, must be double
 	if(  (env_t::pak_height_conversion_factor == 1  &&  !is_one_high(slope))  ||  (env_t::pak_height_conversion_factor == 2  &&  is_one_high(slope))  ) {
-		return "Tunnel muss an\nsingleem\nHang beginnen!\n";
+		return "Tunnel muss an\neinfachem\nHang beginnen!\n";
 	}
 
 	if(  gr->has_two_ways()  &&  waytyp != road_wt  ) {

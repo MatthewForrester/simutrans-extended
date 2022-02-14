@@ -34,12 +34,14 @@
 sint32 minimap_t::max_cargo=0;
 sint32 minimap_t::max_passed=0;
 
-static sint32 max_waiting_change = 1;
-
 static sint32 max_tourist_ziele = 1;
-static sint32 max_waiting = 1;
+static sint32 max_waiting_pax = 1;
+static sint32 max_waiting_mail = 1;
+static sint32 max_waiting_goods = 1;
 static sint32 max_origin = 1;
 static sint32 max_transfer = 1;
+static sint32 max_mail_volume = 1;
+static sint32 max_goods_volume = 1;
 static sint32 max_service = 1;
 
 static sint32 max_building_level = 0;
@@ -1295,7 +1297,7 @@ void minimap_t::init()
 
 	calc_map_size();
 	max_building_level = max_cargo = max_passed = 0;
-	max_tourist_ziele = max_waiting = max_origin = max_transfer = max_service = 1;
+	max_tourist_ziele = max_waiting_pax = max_waiting_mail = max_waiting_goods = max_origin = max_transfer = max_mail_volume = max_goods_volume = max_service = 1;
 	last_schedule_counter = world->get_schedule_counter()-1;
 	set_selected_cnv(convoihandle_t());
 }
@@ -1426,6 +1428,12 @@ void minimap_t::draw(scr_coord pos)
 			stop_cache.clear();
 		}
 
+		if(  (mode & MAP_LINES)  &&  (last_mode & MAP_LINES) == 0  &&  current_cnv.is_bound()  ) {
+			schedule_cache.clear();
+			add_to_schedule_cache(current_cnv, true);
+			needs_redraw = true;
+		}
+
 		if(  (mode^last_mode) & (MAP_STATION_COVERAGE |MAP_FREIGHT|MAP_LINES)  ||  (mode&MAP_LINES  &&  stop_cache.empty())  ) {
 			// rebuilt line display
 			last_schedule_counter = world->get_schedule_counter()-1;
@@ -1439,11 +1447,11 @@ void minimap_t::draw(scr_coord pos)
 		needs_redraw = false;
 	}
 
-	if( map_data==nullptr) {
+	if( map_data==NULL) {
 		return;
 	}
 
-	if(  mode & MAP_PAX_DEST  &&  selected_city!=nullptr  ) {
+	if(  mode & MAP_PAX_DEST  &&  selected_city!=NULL  ) {
 		const uint32 current_pax_destinations = selected_city->get_pax_destinations_new_change();
 		if(  pax_destinations_last_change > current_pax_destinations  ) {
 			// new month started.
@@ -1655,12 +1663,28 @@ void minimap_t::draw(scr_coord pos)
 				}
 			}
 		}
-		else if(  mode & MAP_TRANSFER  ) {
+		else if(  mode&MAP_TRANSFER  ||  mode&MAP_MAIL_HANDLING_VOLUME  ||  mode&MAP_GOODS_HANDLING_VOLUME    ) {
 			FOR( const vector_tpl<halthandle_t>, halt, haltestelle_t::get_alle_haltestellen() ) {
-				if(  halt->is_transfer(goods_manager_t::INDEX_PAS, goods_manager_t::passengers->get_number_of_classes() - 1, max_classes)  ||  halt->is_transfer(goods_manager_t::INDEX_MAIL, goods_manager_t::mail->get_number_of_classes() - 1, max_classes)  ) {
-					stop_cache.append( halt );
+				if(  mode & MAP_TRANSFER  ){
+					if( !halt->get_pax_enabled() ) {
+						continue;
+					}
+					if (halt->is_transfer(goods_manager_t::INDEX_PAS, goods_manager_t::passengers->get_number_of_classes()-1, max_classes) ) {
+						stop_cache.append(halt);
+					}
 				}
-				else {
+				if(  mode & MAP_MAIL_HANDLING_VOLUME  ) {
+					if( !halt->get_mail_enabled() ) {
+						continue;
+					}
+					if(  halt->is_transfer(goods_manager_t::INDEX_MAIL, goods_manager_t::mail->get_number_of_classes()-1, max_classes)  ) {
+						stop_cache.append( halt );
+					}
+				}
+				if(  mode & MAP_GOODS_HANDLING_VOLUME  ) {
+					if( !halt->get_ware_enabled() ) {
+						continue;
+					}
 					// goods transfer?
 					bool transfer = false;
 					for(  int i=goods_manager_t::INDEX_NONE+1  &&  !transfer;  i<goods_manager_t::get_max_catg_index();  i ++  ) {
@@ -1672,15 +1696,23 @@ void minimap_t::draw(scr_coord pos)
 				}
 			}
 		}
-		else if(  mode&MAP_STATUS  ||  mode&MAP_SERVICE  ||  mode&MAP_WAITING  ||  mode&MAP_WAITCHANGE  ) {
+		else if(  mode&MAP_PAX_WAITING  ||  mode&MAP_MAIL_WAITING  ||  mode&MAP_GOODS_WAITING  ||  mode&MAP_SERVICE  ) {
 			FOR( const vector_tpl<halthandle_t>, halt, haltestelle_t::get_alle_haltestellen() ) {
+				if(  mode&MAP_PAX_WAITING && !halt->get_pax_enabled()  ) {
+					continue;
+				}
+				else if(  mode&MAP_MAIL_WAITING && !halt->get_mail_enabled()  ) {
+					continue;
+				}
+				else if(  mode&MAP_GOODS_WAITING && !halt->get_ware_enabled()  ) {
+					continue;
+				}
 				stop_cache.append( halt );
 			}
 		}
 	}
 	// now draw stop cache
 	// if needed to get new values
-	sint32 new_max_waiting_change = 1;
 	FOR(  vector_tpl<halthandle_t>, station, stop_cache  ) {
 
 		if(  !station.is_bound()  ) {
@@ -1694,11 +1726,7 @@ void minimap_t::draw(scr_coord pos)
 		scr_coord temp_stop = map_to_screen_coord( station->get_basis_pos() );
 		temp_stop = temp_stop + pos;
 
-		if(  mode & MAP_STATUS  ) {
-			color = color_idx_to_rgb(station->get_status_farbe());
-			radius = number_to_radius( station->get_capacity(0) );
-		}
-		else if( mode & MAP_SERVICE  ) {
+		if( mode & MAP_SERVICE  ) {
 			const sint32 service = (sint32)station->get_finance_history( 1, HALT_CONVOIS_ARRIVED );
 			if(  service > max_service  ) {
 				max_service = service;
@@ -1706,26 +1734,40 @@ void minimap_t::draw(scr_coord pos)
 			color = calc_severity_color_log( service, max_service );
 			radius = log2( (uint32)( (service << 7) / max_service ) );
 		}
-		else if( mode & MAP_WAITING  ) {
-			const sint32 waiting = (sint32)station->get_finance_history( 0, HALT_WAITING );
-			if(  waiting > max_waiting  ) {
-				max_waiting = waiting;
+		else if(  mode&MAP_PAX_WAITING  ) {
+			const sint32 waiting = station->get_ware_summe(goods_manager_t::get_info(goods_manager_t::INDEX_PAS));
+			if(  waiting > max_waiting_pax  ) {
+				max_waiting_pax = waiting;
 			}
-			color = calc_severity_color_log( waiting, max_waiting );
+			// This needs to be adjusted so that it turns red when it reaches 100%.
+			color = calc_severity_color_log( waiting*9, max(10, station->get_capacity(0)*10) );
+			if(  waiting*10 > max(10, station->get_capacity(0)*11) ) {
+				// When the rate exceeds 110%, it turns purple.
+				color = color_idx_to_rgb(COL_OVERCROWD+1);
+			}
 			radius = number_to_radius( waiting );
 		}
-		else if( mode & MAP_WAITCHANGE  ) {
-			const sint32 waiting_diff = (sint32)(station->get_finance_history( 0, HALT_WAITING ) - station->get_finance_history( 1, HALT_WAITING ));
-			if(  waiting_diff > new_max_waiting_change  ) {
-				new_max_waiting_change = waiting_diff;
+		else if(  mode&MAP_MAIL_WAITING  ) {
+			const sint32 waiting = station->get_ware_summe(goods_manager_t::get_info(goods_manager_t::INDEX_MAIL));
+			if(  waiting > max_waiting_mail  ) {
+				max_waiting_mail = waiting;
 			}
-			if(  waiting_diff < -new_max_waiting_change  ) {
-				new_max_waiting_change = -waiting_diff;
+			color = calc_severity_color_log( waiting*9, max(10, station->get_capacity(1)*10) );
+			if(  waiting*10 > max(10, station->get_capacity(1)*11) ) {
+				color = color_idx_to_rgb(COL_OVERCROWD+1);
 			}
-			const sint32 span = max(new_max_waiting_change,max_waiting_change);
-			const sint32 diff = waiting_diff + span;
-			color = calc_severity_color( diff, span*2 ) ;
-			radius = number_to_radius( abs(waiting_diff) );
+			radius = number_to_radius( waiting );
+		}
+		else if(  mode&MAP_GOODS_WAITING  ) {
+			const sint32 waiting_goods = station->get_finance_history(0,HALT_WAITING) - station->get_ware_summe(goods_manager_t::get_info(goods_manager_t::INDEX_PAS)) - station->get_ware_summe(goods_manager_t::get_info(goods_manager_t::INDEX_MAIL));
+			if(  waiting_goods > max_waiting_goods  ) {
+				max_waiting_goods = waiting_goods;
+			}
+			color = calc_severity_color_log( waiting_goods*9, max(10, station->get_capacity(2)*10) );
+			if(  waiting_goods*10 > max(10, station->get_capacity(2)*11) ) {
+				color = color_idx_to_rgb(COL_OVERCROWD+1);
+			}
+			radius = number_to_radius( waiting_goods*3 );
 		}
 		else if( mode & MAP_ORIGIN  ) {
 			if(  !station->get_pax_enabled()  &&  !station->get_mail_enabled()  ) {
@@ -1739,12 +1781,28 @@ void minimap_t::draw(scr_coord pos)
 			radius = number_to_radius( pax_origin );
 		}
 		else if( mode & MAP_TRANSFER  ) {
-			const sint32 transfer = (sint32)(station->get_finance_history( 1, HALT_ARRIVED ) + station->get_finance_history( 1, HALT_DEPARTED ));
+			const sint32 transfer = (sint32)(station->get_finance_history(1, HALT_VISITORS) + station->get_finance_history(1, HALT_COMMUTERS));
 			if(  transfer > max_transfer  ) {
 				max_transfer = transfer;
 			}
 			color = calc_severity_color_log( transfer, max_transfer );
 			radius = number_to_radius( transfer );
+		}
+		else if( mode & MAP_MAIL_HANDLING_VOLUME  ) {
+			const sint32 mail_transfer = (sint32)station->get_finance_history(1, HALT_MAIL_HANDLING_VOLUME)*10;
+			if(  mail_transfer > max_mail_volume  ) {
+				max_mail_volume = mail_transfer;
+			}
+			color = calc_severity_color_log( mail_transfer, max_mail_volume);
+			radius = number_to_radius( mail_transfer );
+		}
+		else if( mode & MAP_GOODS_HANDLING_VOLUME  ) {
+			const sint32 goods_transfer = (sint32)station->get_finance_history(1, HALT_GOODS_HANDLING_VOLUME)/10;
+			if(  goods_transfer > max_goods_volume) {
+				max_goods_volume = goods_transfer;
+			}
+			color = calc_severity_color_log( goods_transfer, max_goods_volume);
+			radius = number_to_radius( goods_transfer );
 		}
 		else {
 			const int stype = station->get_station_type();
@@ -1827,7 +1885,6 @@ void minimap_t::draw(scr_coord pos)
 		temp_stop = temp_stop + pos;
 		display_ddd_proportional_clip( temp_stop.x + 10, temp_stop.y + 7, proportional_string_width( display_station->get_name() ) + 8, 0, color_idx_to_rgb(display_station->get_owner()->get_player_color1()+3), color_idx_to_rgb(COL_WHITE), display_station->get_name(), false );
 	}
-	max_waiting_change = new_max_waiting_change; // update waiting tendencies
 
 	// if we do not do this here, vehicles would erase the town names
 	// ADD: if CRTL key is pressed, temporary show the name
@@ -2014,6 +2071,15 @@ void minimap_t::draw(scr_coord pos)
 			}
 		}
 
+	}
+
+	if (current_cnv.is_bound()) {
+		scr_coord_val offset = zoom_in / zoom_out /2;
+		scr_coord_val wd = max( zoom_in/zoom_out, 1) * 2 + 1; // to have it always odd
+		for(  int i = 0;  i < current_cnv->get_vehicle_count();  i++  ) {
+			const scr_coord veh_pos = map_to_screen_coord(current_cnv->get_vehicle(i)->get_pos().get_2d()) + pos;
+			display_fillbox_wh_clip_rgb(veh_pos.x-(wd/2)+offset, veh_pos.y-(wd/2)+offset, wd, wd, color_idx_to_rgb(COL_MAGENTA), true);
+		}
 	}
 }
 
