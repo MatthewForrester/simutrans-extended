@@ -23,6 +23,7 @@
 #include "network/pwd_hash.h"
 #include "dataobj/loadsave.h"
 #include "dataobj/rect.h"
+#include "dataobj/environment.h"
 
 #include "simware.h"
 
@@ -1588,6 +1589,8 @@ public:
 		 * (4096 / 180) = 22.7555555... ticks per second.
 		 * This also needs to be changed because it's stupid; it's based on
 		 * old settings which are now in simunits.h
+		 *
+		 * The magic numbers may be related to "TIME units" comment in simunits.h
 		 */
 		return get_settings().get_meters_per_tile() * ticks * 30L * 6L / (4096L * 1000L);
 	}
@@ -2664,11 +2667,24 @@ public:
 	 * Time printing routines.
 	 * Should be inlined.
 	 */
-	inline void sprintf_time_secs(char *p, size_t size, uint32 seconds) const
+	inline void sprintf_time_secs(char *p, size_t size, uint32 seconds, bool long_minutes) const
 	{
-		unsigned int minutes = seconds / 60;
+		// Long minutes are used by DATE_FMT_64_SECOND_MINUTE
+		// DBG_DEBUG("sprintf_time_secs()", "Current date format is %u", env_t::show_month);
+		// DBG_DEBUG("sprintf_timesecs()", "Current status of long_minutes is %d", long_minutes);
+		unsigned int minutes = seconds;
+		if (long_minutes) {
+			minutes = seconds / 64;
+		}
+		else {
+			minutes = seconds / 60;
+		}
 		unsigned int hours = minutes / 60;
-		seconds %= 60;
+		if (long_minutes) {
+			seconds %= 64;
+		} else {
+			seconds %= 60;
+		}
 		if(hours)
 		{
 			minutes %= 60;
@@ -2691,12 +2707,12 @@ public:
 	inline void sprintf_ticks(char *p, size_t size, sint64 ticks) const
 	{
 		uint32 seconds = (uint32)ticks_to_seconds(ticks);
-		sprintf_time_secs(p, size, seconds);
+		sprintf_time_secs(p, size, seconds, env_t::show_month==env_t::DATE_FMT_64_SECOND_MINUTE);
 	}
 
 	inline void sprintf_time_tenths(char* p, size_t size, uint32 tenths) const
 	{
-		sprintf_time_secs(p, size, 6 * tenths);
+		sprintf_time_secs(p, size, 6 * tenths, env_t::show_month==env_t::DATE_FMT_64_SECOND_MINUTE);
 	}
 
 	// @author: jamespetts
