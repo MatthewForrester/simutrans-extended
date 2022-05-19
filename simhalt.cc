@@ -2262,8 +2262,6 @@ uint32 haltestelle_t::find_route(ware_t &ware, const uint32 previous_journey_tim
 
 bool haltestelle_t::can_serve(linehandle_t line) const
 {
-	if (!check_access(line->get_owner())) return false;
-
 	if ((enables&PAX) && line->get_goods_catg_index().is_contained(goods_manager_t::INDEX_PAS)) {
 		return true;
 	}
@@ -2282,8 +2280,6 @@ bool haltestelle_t::can_serve(linehandle_t line) const
 
 bool haltestelle_t::can_serve(convoihandle_t cnv) const
 {
-	if (!check_access(cnv->get_owner())) return false;
-
 	if ((enables&PAX) && cnv->get_goods_catg_index().is_contained(goods_manager_t::INDEX_PAS)) {
 		return true;
 	}

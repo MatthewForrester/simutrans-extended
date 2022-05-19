@@ -291,7 +291,7 @@ void gui_times_history_t::build_table()
 				const bool can_serve = halt.is_bound() ? line.is_bound() ? halt->can_serve(line) : halt->can_serve(convoy) : false;
 				gui_label_buf_t *lb = new_component<gui_label_buf_t>(can_serve ? SYSCOL_TEXT : COL_INACTIVE);
 				if (!can_serve) {
-					lb->buf().printf("(%s)", halt.is_bound() ? halt->get_name() : "Wegpunkt");
+					lb->buf().printf("(%s)", halt.is_bound() ? halt->get_name() : translator::translate("Wegpunkt"));
 				}
 				else {
 					lb->buf().append(halt->get_name());
