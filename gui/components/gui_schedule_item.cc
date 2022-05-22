@@ -167,7 +167,7 @@ bool gui_schedule_entry_number_t::infowin_event(const event_t *ev)
 		if (IS_LEFTRELEASE(ev)) {
 			halthandle_t halt = haltestelle_t::get_halt(entry_pos, world()->get_public_player());
 			if (halt.is_bound()) {
-				if( IS_CONTROL_PRESSED(ev) ) {
+				if( IS_SHIFT_PRESSED(ev) ) {
 					halt->show_detail();
 				}
 				else {

@@ -95,7 +95,7 @@ bool gui_convoiinfo_t::infowin_event(const event_t *ev)
 {
 	if(cnv.is_bound()) {
 		if(IS_LEFTRELEASE(ev)) {
-			if( IS_CONTROL_PRESSED(ev) ) {
+			if( IS_SHIFT_PRESSED(ev) ) {
 				cnv->show_detail();
 			}
 			else {
