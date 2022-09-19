@@ -8338,8 +8338,8 @@ const char *tool_link_factory_t::do_work( player_t *, const koord3d &start, cons
 		else {
 			// remove connections
 			fab->remove_supplier(last_fab->get_pos().get_2d());
-			fab->remove_consumer(last_fab->get_pos().get_2d());
 			last_fab->remove_supplier(fab->get_pos().get_2d());
+			fab->remove_consumer(last_fab->get_pos().get_2d());
 			last_fab->remove_consumer(fab->get_pos().get_2d());
 			return NULL;
 		}

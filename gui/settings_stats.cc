@@ -886,7 +886,7 @@ void settings_economy_stats_t::read(settings_t* const sets)
 	READ_NUM_VALUE( sets->default_ai_construction_speed );
 	env_t::default_ai_construction_speed = sets->get_default_ai_construction_speed();
 
-	READ_NUM_VALUE( sets->just_in_time );
+	sets->set_just_in_time(GET_NUM_VALUE);
 	READ_NUM_VALUE( sets->factory_maximum_intransit_percentage );
 	READ_BOOL_VALUE( sets->crossconnect_factories );
 	READ_NUM_VALUE( sets->crossconnect_factor );
