@@ -25,6 +25,8 @@
 #include "components/gui_vehicle_capacitybar.h"
 #include "components/gui_schedule_item.h"
 #include "components/gui_line_lettercode.h"
+#include "components/gui_waytype_image_box.h"
+
 
 
 class player_t;
@@ -73,6 +75,7 @@ private:
 	gui_convoy_loading_info_t cont_line_capacity_by_catg;
 	gui_scrollpane_t scrolly_convois, scrolly_haltestellen, scroll_times_history, scrolly_line_info, scrolly_fare_manager;
 	gui_scrolled_list_t scl;
+	gui_waytype_image_box_t wt_symbol;
 	gui_textinput_t inp_name, inp_filter;
 	gui_label_t lbl_filter;
 	gui_label_buf_t lb_line_origin, lb_line_destination, lb_travel_distance, lb_service_frequency, lb_convoy_count;

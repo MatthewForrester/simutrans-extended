@@ -32,6 +32,7 @@
 #include "convoi_detail_t.h"
 
 #include "../obj/roadsign.h"
+#include "components/gui_waytype_image_box.h"
 
 #define CHART_HEIGHT (100)
 
@@ -150,10 +151,17 @@ void convoi_info_t::init(convoihandle_t cnv)
 	{
 		container_top = add_table(1,0);
 		{
-			input.add_listener(this);
-			input.set_size(input.get_min_size());
-			reset_cnv_name();
-			add_component(&input);
+			gui_aligned_container_t *tbl = add_table(2,1);
+			tbl->set_alignment(ALIGN_CENTER_V);
+			tbl->set_spacing(scr_size(0,0));
+			{
+				new_component<gui_waytype_image_box_t>(cnv->front()->get_waytype());
+				input.add_listener(this);
+				input.set_size(input.get_min_size());
+				reset_cnv_name();
+				add_component(&input);
+			}
+			end_table();
 
 			add_table(2,0);
 			{

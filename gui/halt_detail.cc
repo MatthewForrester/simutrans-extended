@@ -27,6 +27,7 @@
 #include "components/gui_label.h"
 #include "components/gui_halthandled_lines.h"
 #include "components/gui_convoi_button.h"
+#include "components/gui_waytype_image_box.h"
 
 
 #define GOODS_SYMBOL_CELL_WIDTH 14
@@ -1425,7 +1426,7 @@ void gui_halt_service_info_t::update_connections()
 				if (!waytype_line_cnt) {
 					new_component_span<gui_empty_t>(5); new_component<gui_margin_t>(0, D_V_SPACE);
 
-					new_component<gui_image_t>()->set_image(line->get_linetype_symbol(), true);
+					new_component<gui_waytype_image_box_t>(simline_t::linetype_to_waytype(line->get_linetype()));
 					new_component_span<gui_label_t>(translator::translate(line->get_linetype_name()),5);
 
 				}
@@ -1504,7 +1505,7 @@ void gui_halt_service_info_t::update_connections()
 				if (!lineless_convoy_cnt) {
 					new_component_span<gui_empty_t>(5); new_component<gui_margin_t>(0, D_V_SPACE);
 
-					new_component<gui_image_t>()->set_image(cnv->get_schedule()->get_schedule_type_symbol(), true);
+					new_component<gui_waytype_image_box_t>(cnv->get_schedule()->get_waytype());
 					new_component_span<gui_label_t>(translator::translate(cnv->get_schedule()->get_schedule_type_name()),5);
 				}
 

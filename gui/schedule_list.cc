@@ -281,50 +281,51 @@ schedule_list_gui_t::schedule_list_gui_t(player_t *player_) :
 	// tab panel
 	tabs.set_pos(scr_coord(11,5));
 	tabs.set_size(scr_size(LINE_NAME_COLUMN_WIDTH-11-4, SCL_HEIGHT));
-	tabs.add_tab(&scl, translator::translate("All"));
+	tabs.add_tab(&scl, translator::translate("All"), 0, translator::translate("All"), world()->get_settings().get_waytype_color(ignore_wt));
 	max_idx = 0;
 	tabs_to_lineindex[max_idx++] = simline_t::line;
 
 	// now add all specific tabs
 	if(maglev_t::default_maglev) {
-		tabs.add_tab(&scl, translator::translate("Maglev"), skinverwaltung_t::maglevhaltsymbol, translator::translate("Maglev"));
+		tabs.add_tab(&scl, translator::translate("Maglev"), skinverwaltung_t::maglevhaltsymbol, translator::translate("Maglev"), world()->get_settings().get_waytype_color(maglev_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::maglevline;
 	}
 	if(monorail_t::default_monorail) {
-		tabs.add_tab(&scl, translator::translate("Monorail"), skinverwaltung_t::monorailhaltsymbol, translator::translate("Monorail"));
+		tabs.add_tab(&scl, translator::translate("Monorail"), skinverwaltung_t::monorailhaltsymbol, translator::translate("Monorail"), world()->get_settings().get_waytype_color(monorail_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::monorailline;
 	}
 	if(schiene_t::default_schiene) {
-		tabs.add_tab(&scl, translator::translate("Train"), skinverwaltung_t::zughaltsymbol, translator::translate("Train"));
+		tabs.add_tab(&scl, translator::translate("Train"), skinverwaltung_t::zughaltsymbol, translator::translate("Train"), world()->get_settings().get_waytype_color(track_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::trainline;
 	}
 	if(narrowgauge_t::default_narrowgauge) {
-		tabs.add_tab(&scl, translator::translate("Narrowgauge"), skinverwaltung_t::narrowgaugehaltsymbol, translator::translate("Narrowgauge"));
+		tabs.add_tab(&scl, translator::translate("Narrowgauge"), skinverwaltung_t::narrowgaugehaltsymbol, translator::translate("Narrowgauge"), world()->get_settings().get_waytype_color(narrowgauge_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::narrowgaugeline;
 	}
 	if (!vehicle_builder_t::get_info(tram_wt).empty()) {
-		tabs.add_tab(&scl, translator::translate("Tram"), skinverwaltung_t::tramhaltsymbol, translator::translate("Tram"));
+		tabs.add_tab(&scl, translator::translate("Tram"), skinverwaltung_t::tramhaltsymbol, translator::translate("Tram"), world()->get_settings().get_waytype_color(tram_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::tramline;
 	}
 	if(strasse_t::default_strasse) {
-		tabs.add_tab(&scl, translator::translate("Truck"), skinverwaltung_t::autohaltsymbol, translator::translate("Truck"));
+		tabs.add_tab(&scl, translator::translate("Truck"), skinverwaltung_t::autohaltsymbol, translator::translate("Truck"), world()->get_settings().get_waytype_color(road_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::truckline;
 	}
 	if (!vehicle_builder_t::get_info(water_wt).empty()) {
-		tabs.add_tab(&scl, translator::translate("Ship"), skinverwaltung_t::schiffshaltsymbol, translator::translate("Ship"));
+		tabs.add_tab(&scl, translator::translate("Ship"), skinverwaltung_t::schiffshaltsymbol, translator::translate("Ship"), world()->get_settings().get_waytype_color(water_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::shipline;
 	}
 	if(runway_t::default_runway) {
-		tabs.add_tab(&scl, translator::translate("Air"), skinverwaltung_t::airhaltsymbol, translator::translate("Air"));
+		tabs.add_tab(&scl, translator::translate("Air"), skinverwaltung_t::airhaltsymbol, translator::translate("Air"), world()->get_settings().get_waytype_color(air_wt));
 		tabs_to_lineindex[max_idx++] = simline_t::airline;
 	}
 	tabs.add_listener(this);
 	add_component(&tabs);
 
-	cont_line_name.set_table_layout(2,1);
+	cont_line_name.set_table_layout(3,1);
 	cont_line_name.set_spacing(scr_size(0,0));
 	cont_line_name.set_pos(scr_coord(LINE_NAME_COLUMN_WIDTH, D_MARGIN_TOP));
 
+	cont_line_name.add_component(&wt_symbol);
 	cont_line_name.add_component(&lc_preview);
 
 	// editable line name
@@ -1131,6 +1132,7 @@ void schedule_list_gui_t::update_lineinfo(linehandle_t new_line)
 		scrolly_haltestellen.set_visible(true);
 		scrolly_line_info.set_visible(new_line->get_schedule()->get_count()>0);
 		//inp_name.set_visible(true);
+		wt_symbol.set_waytype(new_line->get_schedule()->get_waytype());
 		lc_preview.set_line(new_line);
 		lc_preview.set_base_color( new_line->get_line_color() );
 		lc_preview.set_visible(new_line->get_line_color_index()!=255);
