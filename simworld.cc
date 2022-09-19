@@ -6456,7 +6456,7 @@ sint32 karte_t::generate_passengers_or_mail(const goods_desc_t * wtyp)
 	destination first_destination;
 	first_destination.location = koord::invalid;
 	uint32 time_per_tile;
-	uint32 tolerance;
+	uint32 tolerance = 0;
 
 	halthandle_t start_halt;
 	halthandle_t current_halt;
