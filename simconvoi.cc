@@ -4213,6 +4213,7 @@ void convoi_t::rdwr(loadsave_t *file)
 			}
 		}
 		for (size_t k = MAX_MONTHS; k-- != 0;) {
+			financial_history[k][CONVOI_CAPACITY] = 0;
 			financial_history[k][CONVOI_DISTANCE] = 0;
 			//financial_history[k][CONVOI_WAYTOLL] = 0;
 		}
@@ -4245,6 +4246,9 @@ void convoi_t::rdwr(loadsave_t *file)
 			{
 				financial_history[k][j] = 0;
 			}
+		}
+		for (size_t k = MAX_MONTHS; k-- != 0;) {
+			financial_history[k][CONVOI_CAPACITY] = 0;
 		}
 	}
 	else
@@ -4359,6 +4363,16 @@ void convoi_t::rdwr(loadsave_t *file)
 				for (int k = MAX_MONTHS-1; k >= 0; k--)
 				{
 					file->rdwr_longlong(dummy);
+				}
+			}
+
+			// discard old incompatible datum
+			if(  file->is_version_ex_less(14,57)  ) {
+				for (int k = MAX_MONTHS - 1; k >= 0; k--) {
+					financial_history[k][CONVOI_CAPACITY] = 0;
+					if( file->is_version_ex_less(14,48) ) {
+						financial_history[k][CONVOI_PAX_DISTANCE] = 0;
+					}
 				}
 			}
 		}
@@ -5530,6 +5544,18 @@ void convoi_t::laden() //"load" (Babelfish)
 			}
 		}
 
+
+		// Calculate the transport distance for "vacant seats".
+		// This is used to determine utilization relative to actual passenger traffic.
+		for (uint8 i = 0; i < vehicle_count; i++) {
+			const vehicle_t* v = vehicle[i];
+			if (v->get_cargo_type() == goods_manager_t::passengers) {
+				// Standing passengers count as negative
+				book( (v->get_cargo_max()-v->get_total_cargo()) * journey_distance_meters/100, CONVOI_CAPACITY );
+			}
+		}
+
+
 		// Recalculate comfort
 		// This is an average of comfort for all classes,
 		// weighted by capacity.
@@ -6207,11 +6233,6 @@ station_tile_search_ready: ;
 	can_go = can_go && state != WAITING_FOR_CLEARANCE && state != WAITING_FOR_CLEARANCE_ONE_MONTH && state != WAITING_FOR_CLEARANCE_TWO_MONTHS;
 	can_go = can_go && now > earliest_departure_time;
 	if(can_go) {
-		// add available capacity after loading(!) to statistics
-		for (unsigned i = 0; i<vehicle_count; i++) {
-			book(get_vehicle(i)->get_cargo_max()-get_vehicle(i)->get_total_cargo(), CONVOI_CAPACITY);
-		}
-
 		// Advance schedule
 		advance_schedule();
 		state = ROUTING_1;
@@ -6283,13 +6304,13 @@ void convoi_t::calc_loading()
 
 
 // return the current average speed
-uint32 convoi_t::get_average_kmh()
-{
-	halthandle_t halt = haltestelle_t::get_halt(schedule->get_current_entry().pos, owner);
-	id_pair idp(last_stop_id, halt.get_id());
-	average_tpl<uint32>* avr = get_average_journey_times().access(idp);
-	return avr ? avr->get_average() : get_vehicle_summary().max_speed;
-}
+//uint32 convoi_t::get_average_kmh()
+//{
+//	halthandle_t halt = haltestelle_t::get_halt(schedule->get_current_entry().pos, owner);
+//	id_pair idp(last_stop_id, halt.get_id());
+//	average_tpl<uint32>* avr = get_average_journey_times().access(idp);
+//	return avr ? avr->get_average() : get_vehicle_summary().max_speed;
+//}
 
 
 /**

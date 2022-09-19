@@ -71,7 +71,7 @@ class convoi_t : public sync_steppable, public overtaker_t, public lazy_convoy_t
 {
 public:
 	enum convoi_cost_t {            // Ext|Std|Description
-		CONVOI_CAPACITY = 0,        //  0 | 0 | the amount of ware that could be transported, theoretically
+		CONVOI_CAPACITY = 0,        //  0 |   | the distance (km) travelled by vacant seats
 		CONVOI_PAX_DISTANCE,        //  1 |   | the distance (km) travelled by passengers
 		CONVOI_AVERAGE_SPEED,       //  2 |   | the average speed of the convoy per rolling month
 		CONVOI_COMFORT,             //  3 |   | the aggregate comfort rating of this convoy
@@ -1352,7 +1352,7 @@ public:
 	void must_recalc_data() { invalidate_adverse_summary(); }
 
 	// just a guess of the speed
-	uint32 get_average_kmh();
+	//uint32 get_average_kmh();
 
 	// Overtaking for convois
 	virtual bool can_overtake(overtaker_t *other_overtaker, sint32 other_speed, sint16 steps_other) OVERRIDE;
