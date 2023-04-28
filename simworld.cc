@@ -13,6 +13,9 @@
 #include <math.h>
 #include <sys/stat.h>
 
+#include <chrono>
+#include <ctime> 
+
 #include "path_explorer.h"
 
 #include "simcity.h"
@@ -122,8 +125,6 @@
 #include "dataobj/tabfile.h" // For reload of simuconf.tab to override savegames
 
 #include "pathes.h"
-#include <chrono>
-#include <ctime> 
 
 
 #ifdef MULTI_THREAD
@@ -11690,7 +11691,6 @@ void karte_t::announce_server(int status)
 		buf.printf( "&stops=%u",     haltestelle_t::get_alle_haltestellen().get_count() );
 
 		auto time_before_announce = std::chrono::system_clock::now();
-		dbg->warning("karte_t::announce_server()", "Began trying to announce server at ", timenow);
 		network_http_post( ANNOUNCE_SERVER, ANNOUNCE_URL, buf, NULL );
 
 		// Record time of this announce
