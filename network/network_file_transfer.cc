@@ -349,7 +349,7 @@ const char *network_http_post( const char *address, const char *name, const char
 		char request[4096];
 		int const len = sprintf(request, format, name, QUOTEME(REVISION), address, strlen(poststr), poststr);
 		uint16 dummy;
-		if (!network_send_data(my_client_socket, request, len, dummy, 250)) {
+		if (!network_send_data(my_client_socket, request, len, dummy, 10)) {
 			err = "Server did not respond!";
 		}
 
