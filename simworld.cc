@@ -14,7 +14,7 @@
 #include <sys/stat.h>
 
 #include <chrono>
-#include <ctime> 
+#include <ctime>
 
 #include "path_explorer.h"
 
