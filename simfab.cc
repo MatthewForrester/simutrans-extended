@@ -589,6 +589,10 @@ void fabrik_t::recalc_storage_capacities()
 					// Inputs are now normalized to factory production.
 					uint32 prod_factor = welt->get_settings().using_fab_contracts() ? 256 : input->get_consumption();
 					g.max = (sint32)(welt->scale_for_distance_only((((sint64)((input->get_capacity() << precision_bits) + share) << DEFAULT_PRODUCTION_FACTOR_BITS) + (sint64)(prod_factor - 1)) / (sint64)prod_factor));
+					if (g.get_capacity(prod_factor) < 7) {
+						// No capacities less than 7 are allowed.  This allows for loading a whole (small) truck.
+						g.max = (sint32)( ( (sint64)7 << precision_bits << DEFAULT_PRODUCTION_FACTOR_BITS) / (sint64)prod_factor );
+					}
 				}
 			}
 			// then, for output goods
@@ -597,6 +601,10 @@ void fabrik_t::recalc_storage_capacities()
 					// Outputs are now normalized to factory production.
 					uint32 prod_factor = welt->get_settings().using_fab_contracts() ? 256 : output->get_factor();
 					g.max = (sint32)(welt->scale_for_distance_only((((sint64)((output->get_capacity() << precision_bits) + share) << DEFAULT_PRODUCTION_FACTOR_BITS) + (sint64)(prod_factor - 1)) / (sint64)prod_factor));
+					if (g.get_capacity(prod_factor) < 7) {
+						// No capacities less than 7 are allowed.  This allows for loading a whole (small) truck.
+						g.max = (sint32)( ( (sint64)7 << precision_bits << DEFAULT_PRODUCTION_FACTOR_BITS) / (sint64)prod_factor );
+					}
 				}
 			}
 		}
@@ -609,6 +617,10 @@ void fabrik_t::recalc_storage_capacities()
 				// Inputs are now normalized to factory production.
 				uint32 prod_factor = welt->get_settings().using_fab_contracts() ? 256 : input->get_consumption();
 				g.max = (sint32)(welt->scale_for_distance_only(((((sint64)input->get_capacity() * (sint64)prodbase) << (precision_bits + DEFAULT_PRODUCTION_FACTOR_BITS)) + (sint64)(prod_factor - 1)) / ((sint64)desc->get_productivity() * (sint64)prod_factor)));
+					if (g.get_capacity(prod_factor) < 7) {
+						// No capacities less than 7 are allowed.  This allows for loading a whole (small) truck.
+						g.max = (sint32)( ( (sint64)7 << precision_bits << DEFAULT_PRODUCTION_FACTOR_BITS) / (sint64)prod_factor );
+					}
 			}
 		}
 		// then, for output goods
@@ -617,6 +629,10 @@ void fabrik_t::recalc_storage_capacities()
 				// Outputs are now normalized to factory production.
 				uint32 prod_factor = welt->get_settings().using_fab_contracts() ? 256 : output->get_factor();
 				g.max = (sint32)(welt->scale_for_distance_only(((((sint64)output->get_capacity() * (sint64)prodbase) << (precision_bits + DEFAULT_PRODUCTION_FACTOR_BITS)) + (sint64)(prod_factor - 1)) / ((sint64)desc->get_productivity() * (sint64)prod_factor)));
+					if (g.get_capacity(prod_factor) < 7) {
+						// No capacities less than 7 are allowed.  This allows for loading a whole (small) truck.
+						g.max = (sint32)( ( (sint64)7 << precision_bits << DEFAULT_PRODUCTION_FACTOR_BITS) / (sint64)prod_factor );
+					}
 			}
 		}
 	}
