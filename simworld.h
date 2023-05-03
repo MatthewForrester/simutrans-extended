@@ -6,6 +6,8 @@
 #ifndef SIMWORLD_H
 #define SIMWORLD_H
 
+//Used in 'poor person's performance check' monthly timer
+#include <chrono>
 
 #include "simconst.h"
 #include "simtypes.h"
@@ -712,6 +714,10 @@ private:
 	 * Monthly actions.
 	 */
 	void new_month();
+
+	//Used in 'poor person's performance check' monthly timer
+	std::chrono::time_point<std::chrono::system_clock> time_this_month;
+	std::chrono::time_point<std::chrono::system_clock> time_last_month;
 
 	/**
 	 * Yearly actions.
