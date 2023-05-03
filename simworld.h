@@ -716,8 +716,8 @@ private:
 	void new_month();
 
 	//Used in 'poor person's performance check' monthly timer
-	std::chrono::time_point<std::chrono::system_clock> time_this_month;
-	std::chrono::time_point<std::chrono::system_clock> time_last_month;
+	std::chrono::time_point<std::chrono::system_clock> system_time_this_month;
+	std::chrono::time_point<std::chrono::system_clock> system_time_last_month;
 
 	/**
 	 * Yearly actions.
