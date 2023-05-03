@@ -349,6 +349,8 @@ const char *network_http_post( const char *address, const char *name, const char
 		char request[4096];
 		int const len = sprintf(request, format, name, QUOTEME(REVISION), address, strlen(poststr), poststr);
 		uint16 dummy;
+		// Reduced timeout_ms to from 250 to 10 so the server does not freeze for minutes when the listserver is down. 
+		// This code path doesn't seem to be used for any other purpose than the listserver.
 		if (!network_send_data(my_client_socket, request, len, dummy, 10)) {
 			err = "Server did not respond!";
 		}
@@ -433,8 +435,16 @@ const char *network_http_get ( const char* address, const char* name, cbuffer_t&
 		char request[REQ_HEADER_LEN];
 		int const len = sprintf( request, format, name, QUOTEME(REVISION), address );
 		uint16 dummy;
-		if (  !network_send_data( my_client_socket, request, len, dummy, 250 )  ) {
-			err = "Server did not respond!";
+		// If we are a server announcing ourselves, reduce timeout_ms to from 250 to 10 so we don't freeze for minutes when the listserver is down. 
+		if ( env_t::server ) {
+			if (  !network_send_data( my_client_socket, request, len, dummy, 10 )  ) {
+				err = "Server did not respond!";
+			}
+		}
+		else {
+				if (  !network_send_data( my_client_socket, request, len, dummy, 250 )  ) {
+				err = "Server did not respond!";
+			}
 		}
 
 		// Read the response header and parse arguments as needed
