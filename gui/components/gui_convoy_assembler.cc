@@ -325,7 +325,7 @@ void gui_vehicle_spec_t::update(uint8 action, uint32 resale_value, uint16 curren
 											add_table(2,1);
 											{
 												char time_str[32];
-												world()->sprintf_time_secs(time_str, 32, world()->get_settings().max_tolerable_journey(veh_type->get_comfort(ac)));
+												world()->sprintf_time_secs(time_str, 32, world()->get_settings().max_tolerable_journey(veh_type->get_comfort(ac)), (env_t::show_month==env_t::DATE_FMT_64_SECOND_MINUTE || env_t::show_month==env_t::DATE_FMT_64_SECOND_MINUTE_PRETTY) );
 												if( skinverwaltung_t::comfort ) {
 													new_component<gui_image_t>(skinverwaltung_t::comfort->get_image_id(0), 0, ALIGN_NONE, true);
 													lb = new_component<gui_label_buf_t>();
