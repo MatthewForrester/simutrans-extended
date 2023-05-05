@@ -1402,8 +1402,8 @@ void karte_t::init(settings_t* const sets, sint8 const* const h_field)
 	current_month = last_month + (last_year*12);
 
 	//Used in 'poor person's performance check' monthly timer
-	system_time_this_month {};
-	system_time_last_month {};
+	system_time_this_month = {};
+	system_time_last_month = {};
 
 	set_ticks_per_world_month_shift(settings.get_bits_per_month());
 	next_month_ticks =  karte_t::ticks_per_world_month;
@@ -5128,7 +5128,7 @@ void karte_t::new_month()
 	if( system_time_last_month.time_since_epoch() != decltype(system_time_last_month)::duration::zero() ) {
 		// Must use auto so the compiler makes a good choice for each platform
 		auto duration_of_last_month_in_system_time = system_time_this_month - system_time_last_month;
-		std::chrono::minutes duration_of_last_month_in_minutes = duration_of_last_month_in_system_time;
+		std::chrono::minutes duration_of_last_month_in_minutes = std::chrono::duration_cast<std::chrono::minutes>(duration_of_last_month_in_system_time);
 		dbg->warning("karte_t::new_month()", "The duration in minutes of month (%d/%d) was: %d", (last_month%12)+1, last_month/12, duration_of_last_month_in_minutes.count());
 	}
 
