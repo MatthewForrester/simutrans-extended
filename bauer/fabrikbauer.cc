@@ -677,6 +677,7 @@ bool factory_builder_t::can_factory_tree_rotate( const factory_desc_t *desc )
  * @p pos is suitable for factory construction and number of chains
  * is the maximum number of good types for which suppliers chains are built
  * (meaning there are no unfinished factory chains).
+ * number_of_chains < 0 means make ALL the chains.
  */
 int factory_builder_t::build_link(koord3d* parent, const factory_desc_t* info, sint32 initial_prod_base, int rotate, koord3d* pos, player_t* player, int number_of_chains, bool ignore_climates)
 {
@@ -686,6 +687,12 @@ int factory_builder_t::build_link(koord3d* parent, const factory_desc_t* info, s
 	if(info==NULL) {
 		// no industry found
 		return 0;
+	}
+
+	if (number_of_chains < 0) {
+		// This is a signal meaning "make all the chains"
+		// This is functional infinity: typical numbers of goods are less than 10, but allow for weird paks
+		number_of_chains = SINT32_MAX
 	}
 
 	factory_desc_t::site_t site = info->get_placement();
@@ -1108,6 +1115,7 @@ int factory_builder_t::build_chain_link(const fabrik_t* origin_fab, const factor
  * a new consumer is to be added in any event. This latter change is needed to make
  * sure that enough consumer industries get built.
  * @return: number of factories built
+ * Return value is not reliable in the force-consumer-industry case
  */
 int factory_builder_t::increase_industry_density( bool tell_me, bool do_not_add_beyond_target_density, bool power_stations_only, uint32 force_consumer )
 {
@@ -1325,9 +1333,11 @@ int factory_builder_t::increase_industry_density( bool tell_me, bool do_not_add_
 							welt->get_message()->add_message(buf, unlinked_consumer->get_pos().get_2d(), message_t::industry, CITY_KI, unlinked_consumer->get_desc()->get_building()->get_tile(0)->get_background(0, 0, 0));
 						}
 						minimap_t::get_instance()->calc_map();
-						// if we are forcing the addition of a consumer, don't return, keep going
-						// otherwise return
-						if (! force_add_consumer) {
+						if (force_add_consumer) {
+							// if we are forcing the addition of a consumer, keep going to do so
+							break;
+						} else {
+							// otherwise return
 							return nr;
 						}
 					}
@@ -1336,7 +1346,9 @@ int factory_builder_t::increase_industry_density( bool tell_me, bool do_not_add_
 		}
 	}
 
-	// ok, no chains to finish, thus we must start anew
+	// ok, no chains to finish (or forcing a new consumer), thus we must start anew
+	// reset count in case we built already
+	nr = 0;
 
 	// first decide whether a new powerplant is needed or not
 	uint32 total_electric_demand = 1;
@@ -1419,7 +1431,7 @@ int factory_builder_t::increase_industry_density( bool tell_me, bool do_not_add_
 				}
 				if(welt->lookup(pos)) {
 					// Space found...
-					nr += build_link(NULL, consumer, -1 /* random prodbase */, rotation, &pos, welt->get_public_player(), 1, ignore_climates);
+					nr += build_link(NULL, consumer, -1 /* random prodbase */, rotation, &pos, welt->get_public_player(), -1, ignore_climates);
 					if(nr>0) {
 						fabrik_t *our_fab = fabrik_t::get_fab( pos.get_2d() );
 						minimap_t::get_instance()->calc_map_size();
