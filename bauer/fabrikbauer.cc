@@ -1249,7 +1249,7 @@ int factory_builder_t::increase_industry_density( bool tell_me, bool do_not_add_
 		}
 
 		// ok, found consumer
-		if(!force_add_consumer && !unlinked_consumers.empty())
+		if(!unlinked_consumers.empty())
 		{
 			for(auto unlinked_consumer : unlinked_consumers)
 			{
@@ -1325,7 +1325,11 @@ int factory_builder_t::increase_industry_density( bool tell_me, bool do_not_add_
 							welt->get_message()->add_message(buf, unlinked_consumer->get_pos().get_2d(), message_t::industry, CITY_KI, unlinked_consumer->get_desc()->get_building()->get_tile(0)->get_background(0, 0, 0));
 						}
 						minimap_t::get_instance()->calc_map();
-						return nr;
+						// if we are forcing the addition of a consumer, don't return, keep going
+						// otherwise return
+						if (! force_add_consumer) {
+							return nr;
+						}
 					}
 				}
 			}
