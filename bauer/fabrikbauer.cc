@@ -689,12 +689,6 @@ int factory_builder_t::build_link(koord3d* parent, const factory_desc_t* info, s
 		return 0;
 	}
 
-	if (number_of_chains < 0) {
-		// This is a signal meaning "make all the chains"
-		// This is functional infinity: typical numbers of goods are less than 10, but allow for weird paks
-		number_of_chains = SINT32_MAX
-	}
-
 	factory_desc_t::site_t site = info->get_placement();
 
 	// no cities at all?
@@ -823,8 +817,8 @@ int factory_builder_t::build_link(koord3d* parent, const factory_desc_t* info, s
 
 	INT_CHECK("fabrikbauer 596");
 
-	// now build supply chains for all products
-	for(int i=0; i<info->get_supplier_count()  &&  i<number_of_chains; i++) {
+	// now build supply chains for all products (if number_of_chains<0) or some (if it's 1 or more)
+	for(int i=0; i<info->get_supplier_count()  &&  (number_of_chains<0 || i<number_of_chains); i++) {
 		n += build_chain_link( our_fab, info, i, player);
 	}
 
