@@ -13,6 +13,10 @@
 #include <math.h>
 #include <sys/stat.h>
 
+//Used in 'poor person's performance check' monthly timer
+#include <chrono>
+#include <ctime> 
+
 #include "path_explorer.h"
 
 #include "simcity.h"
@@ -1398,6 +1402,11 @@ void karte_t::init(settings_t* const sets, sint8 const* const h_field)
 	last_month = 0;
 	last_year = settings.get_starting_year();
 	current_month = last_month + (last_year*12);
+
+	//Used in 'poor person's performance check' monthly timer
+	system_time_this_month = {};
+	system_time_last_month = {};
+
 	set_ticks_per_world_month_shift(settings.get_bits_per_month());
 	next_month_ticks =  karte_t::ticks_per_world_month;
 	season=(2+last_month/3)&3; // summer always zero
@@ -4485,6 +4494,22 @@ inline sint32 get_population(stadt_t const* const c)
 
 void karte_t::new_month()
 {
+
+	// Measure each month's duration (by system clock) as a 'poor person's performance check'
+	// Requires C++11
+	if( system_time_this_month.time_since_epoch() != decltype(system_time_this_month)::duration::zero() ) {
+		system_time_last_month = system_time_this_month;
+	}
+
+	system_time_this_month = std::chrono::system_clock::now();
+
+	if( system_time_last_month.time_since_epoch() != decltype(system_time_last_month)::duration::zero() ) {
+		// Must use auto so the compiler makes a good choice for each platform
+		auto duration_of_last_month_in_system_time = system_time_this_month - system_time_last_month;
+		std::chrono::minutes duration_of_last_month_in_minutes = std::chrono::duration_cast<std::chrono::minutes>(duration_of_last_month_in_system_time);
+		dbg->warning("karte_t::new_month()", "The duration in minutes of month (%d/%d) was: %d", (last_month%12)+1, last_month/12, duration_of_last_month_in_minutes.count());
+	}
+
 	update_history();
 
 	// advance history ...
