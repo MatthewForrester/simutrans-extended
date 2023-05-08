@@ -15,7 +15,7 @@
 
 //Used in 'poor person's performance check' monthly timer
 #include <chrono>
-#include <ctime> 
+#include <ctime>
 
 #include "path_explorer.h"
 
