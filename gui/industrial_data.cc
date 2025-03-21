@@ -3,12 +3,15 @@
  * (see LICENSE.txt)
  */
 
+ #include <string.h>
  #include "industrial_data.h"
+ #include "../simworld.h"
 
  industrial_data_t::industrial_data_t() :
     gui_frame_t( "Industrial data calculations" )
 {
-    // set_table_layout(1,0);
-
-    
+    set_table_layout(1,0);
+    target_industry_density_lb.buf().printf("Target industry density: %u"), world()->get_target_industry_density();
+    target_industry_density_lb.update();
+    add_component(&target_industry_density_lb);
 }

@@ -639,6 +639,7 @@ SOURCES += bauer/pier_builder.cc
 SOURCES += boden/pier_deck.cc
 SOURCES += descriptor/pier_desc.cc
 SOURCES += gui/pier_rotation_select.cc
+SOURCES += gui/industrial_data.cc
 
 LDFLAGS += -lpng
 

@@ -47,6 +47,8 @@ private:
 	gui_scrollpane_t scrolly_exp_revenue;
 
 	button_t revert_to_default, revert_to_last_save;
+	// Opens a window showing Extended industrial density data
+	button_t industrial_data_bt;
 
 public:
 	settings_frame_t(settings_t*);

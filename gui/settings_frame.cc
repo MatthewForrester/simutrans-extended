@@ -17,6 +17,8 @@
 
 #include "components/action_listener.h"
 
+#include "industrial_data.h"
+
 using std::string;
 
 settings_frame_t::settings_frame_t(settings_t* const s) :
@@ -32,7 +34,7 @@ settings_frame_t::settings_frame_t(settings_t* const s) :
 	scrolly_exp_revenue(&exp_revenue, true, true)
 {
 	set_table_layout(1,0);
-	add_table(2,1);
+	add_table(3,1);
 	{
 		revert_to_default.init( button_t::roundbox, "Simuconf.tab");
 		revert_to_default.set_size(D_BUTTON_SIZE);
@@ -43,6 +45,15 @@ settings_frame_t::settings_frame_t(settings_t* const s) :
 		revert_to_last_save.set_size(D_BUTTON_SIZE);
 		revert_to_last_save.add_listener( this );
 		add_component( &revert_to_last_save );
+
+		industrial_data_bt.init( button_t::roundbox, "Industrial data");
+		industrial_data_bt.set_size( D_BUTTON_SIZE );
+		if ( skinverwaltung_t::open_window) {
+			industrial_data_bt.set_image( skinverwaltung_t::open_window->get_image_id(0) );
+			industrial_data_bt.set_image_position_right( true );
+		}
+		industrial_data_bt.add_listener( this );
+		add_component( &industrial_data_bt );
 	}
 	end_table();
 
@@ -135,6 +146,9 @@ bool settings_frame_t::action_triggered( gui_action_creator_t *comp, value_t )
 		costs.init( sets );
 		climates.init( sets );
 		set_windowsize(get_windowsize());
+	}
+	else if ( comp==&industrial_data_bt ) {
+		create_win( new industrial_data_t, w_info, magic_industrial_data);
 	}
 	return true;
 }
