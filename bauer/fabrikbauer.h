@@ -18,7 +18,7 @@ class player_t;
 class fabrik_t;
 
 enum density_options {
-	NEUTRAL, NO_FORCE, CONSUMER_ONLY, FILL_MISSING_ONLY
+	NEUTRAL, NO_FORCE, CONSUMER_ONLY, FILL_MISSING_ONLY, FILL_UNDERSUPPLIED
 };
 
 
@@ -168,6 +168,25 @@ private:
 	 * @returns actual amount of global production minus actual amount of global consumption of the good.
 	 */
 	static sint32 get_global_oversupply(const goods_desc_t* good);
+
+	/**
+	 * Counts up total production of a given good.
+	 * @returns actual amount of global production for the good
+	 */
+	static sint32 get_global_production(const goods_desc_t* good);
+
+	/**
+	 * Counts up total consumption of a good, taking into account downstream bottlenecks.
+	 * @returns actual amount of global consumption of the good.
+	 */
+	static sint32 get_global_consumption(const goods_desc_t* good);
+
+	/**
+	 * Adjusts the consumption of a factory taking into account its downstream consumers, using the output it has the highest % consumption of.
+	 * For instance, if a factory produces 100t of good A and 80t of good B, but good A has 10t of consumption and good B has 20t, then the overall adjustment is (20/80)=25%
+	 * @returns consumption * the fraction of the factory's production that is actually used
+	 */
+	static sint32 adjust_input_consumption(const fabrik_t* factory, sint32 consumption);
 
 	/**
 	 * Finds a valid position for a factory type, and deposits the position and rotation in the pointers provided.

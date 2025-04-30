@@ -1460,7 +1460,6 @@ DBG_DEBUG("karte_t::init()","built timeline");
 
 	loadingscreen_t ls( translator::translate("distributing factories"), 16 + settings.get_city_count() * 4 + settings.get_factory_count(), true, true );
 
-	//while(  fab_list.get_count() < (uint32)settings.get_factory_count()  ) {
 	while (count_consumers() < (uint32)settings.get_factory_count()) {
 		if(  !factory_builder_t::increase_industry_density( false, false, false, NO_FORCE)  ) {
 			if(  ++consecutive_build_failures > 3  ) {
@@ -1469,6 +1468,7 @@ DBG_DEBUG("karte_t::init()","built timeline");
 			}
 		}
 		else {
+			factory_builder_t::increase_industry_density(false, false, false, FILL_MISSING_ONLY);
 			consecutive_build_failures = 0;
 		}
 		consecutive_consumer_failures = 0;
@@ -1485,7 +1485,7 @@ DBG_DEBUG("karte_t::init()","built timeline");
 	dbg->message("karte_t::init()", "Filling in missing production ...");
 	consecutive_build_failures = 0;
 	while (consecutive_build_failures < 3) {
-		if (!factory_builder_t::increase_industry_density(false, false, false, FILL_MISSING_ONLY)) {
+		if (!factory_builder_t::increase_industry_density(false, false, false, FILL_UNDERSUPPLIED)) {
 			consecutive_build_failures++;
 		}
 	}
@@ -1556,6 +1556,7 @@ DBG_DEBUG("karte_t::init()","built timeline");
 			}
 		}
 	}
+	dbg->message("karte_t::init()", "Total industry density: %ld ", actual_industry_density);
 	// The population is not counted at this point, so cannot set this here.
 	industry_density_proportion = 0;
 
@@ -1570,7 +1571,7 @@ DBG_DEBUG("karte_t::init()","built timeline");
 #endif
 }
 
-int karte_t::count_consumers() {
+uint32 karte_t::count_consumers() {
 	uint32 count = 0;
 	for (fabrik_t* fab : fab_list) {
 		if (fab->get_desc()->is_consumer_only())
