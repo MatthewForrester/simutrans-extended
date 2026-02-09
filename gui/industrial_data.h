@@ -3,8 +3,9 @@
  * (see LICENSE.txt)
  */
 
-#ifndef INDUSTRIAL_DATA_H
-#define INDUSTRIAL_DATA_H
+#ifndef GUI_INDUSTRIAL_DATA_H
+#define GUI_INDUSTRIAL_DATA_H
+
 
 #include "gui_frame.h"
 #include "components/gui_label.h"

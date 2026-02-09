@@ -16,7 +16,7 @@
     add_component(&target_industry_density_lb);
     actual_industry_density_lb.buf().printf( "Actual industry density: %u", world()->get_actual_industry_density() );
     actual_industry_density_lb.update();
-    add_component(&actual_industry_density_lb);    
+    add_component(&actual_industry_density_lb);
     sint64 estimated_industry_density_proportion = ( ( (world()->get_actual_industry_density() * 1000000ll) ) / world()->get_finance_history_month( 0, karte_t::player_cost::WORLD_CITIZENS ) );
     estimated_industry_density_proportion_lb.buf().printf( "Estimated industry_density_proportion after next revision: %i", estimated_industry_density_proportion );
     estimated_industry_density_proportion_lb.update();
