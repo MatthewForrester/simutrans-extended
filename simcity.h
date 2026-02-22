@@ -201,6 +201,25 @@ private:
 	 */
 	sint64 unsupplied_city_growth;
 
+	/* Represents the population of buildings that were manually removed by players and will be
+	*  rehoused in new residential citybuildings. May be negative.
+	*/
+	sint32 relocated_adjusted_population;
+
+	/* Represents the jobs of buildings that were manually removed by players and will be 
+	*  replaced by new residential commercia/industrial citybuildings (TODO factories).
+	*  May be negative.
+	*/
+	sint32 relocated_adjusted_jobs;
+
+public:
+
+	void add_to_relocated_adjusted_population(sint32 cleared_pop) { relocated_adjusted_population += cleared_pop; };
+	void add_to_relocated_adjusted_jobs(sint32 cleared_jobs) { relocated_adjusted_jobs += cleared_jobs; };
+	sint32 get_relocated_adjusted_population() { return relocated_adjusted_population; };
+	sint32 get_relocated_adjusted_jobs() { return relocated_adjusted_jobs; };
+
+private: 
 	/**
 	* City history
 	* Current month stats are not appropiate to determine satisfaction for growth.
@@ -385,10 +404,11 @@ private:
 	void bewerte_res_com_ind(const koord pos, int &ind, int &com, int &res);
 
 	/**
-	 * Build/renovates a city building at Planquadrat (tile) x,y
+	 * Build a city building at Planquadrat (tile) x,y (could be a renovation)
+	 * @param relocation Used when relocating pops/jobs removed by a player
 	 */
-	void build_city_building(koord pos, bool new_town, bool map_generation);
-	bool renovate_city_building(gebaeude_t *gb, bool map_generation = false);
+	void build_city_building(koord pos, bool new_town, bool map_generation, bool relocation = false);
+	bool renovate_city_building(gebaeude_t *gb, bool map_generation = false, bool relocation = false);
 	// Subroutines for build_city_building and renovate_city_buiding
 	// @author neroden
 	const gebaeude_t* get_citybuilding_at(const koord k) const;
@@ -411,7 +431,7 @@ protected:
 	bool build_road(const koord k, player_t *player, bool forced, bool map_generation);
 
 private:
-	void build(bool new_town, bool map_generation);
+	void build(bool new_town, bool map_generation, bool relocation);
 
 	/**
 	 * @param pos position to check
@@ -515,6 +535,7 @@ public:
 	uint32 get_visitor_demand_by_class(uint8 p_class);
 	sint32 get_unemployed() const { return bev - arb; }
 	sint32 get_homeless()   const { return bev - won; }
+	
 
 	const char *get_name() const { return name; }
 	void set_name( const char *name );

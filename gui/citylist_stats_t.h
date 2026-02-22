@@ -87,6 +87,7 @@ public:
 		goods_product,
 #ifdef DEBUG
 		dbg_demands,
+		dbg_relocation,
 #endif // DEBUG
 		CITYLIST_MODES
 	};

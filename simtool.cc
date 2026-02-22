@@ -748,7 +748,7 @@ DBG_MESSAGE("tool_remover()",  "removing tunnel  from %d,%d,%d",gr->get_pos().x,
 		{
 			return false;
 		}
-		hausbauer_t::remove( player, sb, false );
+		hausbauer_t::remove( player, sb, false, false );
 		welt->set_dirty(); // May delete lots of signals
 		return true;
 	}
@@ -790,7 +790,7 @@ DBG_MESSAGE("tool_remover()",  "removing tunnel  from %d,%d,%d",gr->get_pos().x,
 				return false;
 			}
 			// townhall is also removed during town removal
-			hausbauer_t::remove( player, gb, false );
+			hausbauer_t::remove( player, gb, false, true );
 		}
 		return true;
 	}
@@ -990,6 +990,13 @@ DBG_MESSAGE("tool_remover()", "removing way");
 			}
 		}
 	}
+
+	// Record that this tile was intentionally cleared, so relocation won't build on it for a month or two.
+	if ( !env_t::networkmode )
+	{
+		welt->add_to_koords_cleared(pos.get_2d());
+	}
+	
 
 	// remove empty tile
 	if(  !gr->ist_karten_boden()  &&  gr->get_top()==0  && (gr->get_typ()!=grund_t::typ::pierdeck || ((pier_deck_t*)gr)->get_is_dummy())) {
@@ -8545,7 +8552,7 @@ DBG_MESSAGE("tool_headquarter()", "building headquarters at (%d,%d)", pos.x, pos
 			// did not upgrade old one, need to remove it
 			if(  !built  ) {
 				// remove previous one
-				hausbauer_t::remove( player, prev_hq, false );
+				hausbauer_t::remove( player, prev_hq, false, false );
 				// resize cursor
 				init(player);
 			}

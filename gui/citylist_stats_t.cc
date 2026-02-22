@@ -222,6 +222,21 @@ void gui_city_stats_t::update_table()
 			end_table();
 			break;
 #endif // DEBUG
+#ifdef DEBUG
+		case citylist_stats_t::dbg_relocation:
+			add_table(2,1);
+			{
+				gui_label_buf_t *lb = new_component<gui_label_buf_t>(city->get_relocated_adjusted_population()<0? MONEY_MINUS : SYSCOL_TEXT, gui_label_t::right);
+				lb->buf().printf("%i", city->get_relocated_adjusted_population());
+				lb->update();
+
+				lb = new_component<gui_label_buf_t>(city->get_relocated_adjusted_jobs()<0 ? MONEY_MINUS : SYSCOL_TEXT, gui_label_t::right);
+				lb->buf().printf("%i", city->get_relocated_adjusted_jobs());
+				lb->update();
+			}
+			end_table();
+			break;
+#endif // DEBUG relocation feature
 		case citylist_stats_t::goods_demand:
 		case citylist_stats_t::goods_product:
 			if (!city->get_city_factories().get_count()) {
@@ -459,6 +474,7 @@ void citylist_stats_t::recalc_wold_max()
 	if (display_mode == cl_general) return;
 #ifdef DEBUG
 	if (display_mode == dbg_demands) return;
+	if (display_mode == dbg_relocation) return;
 #endif // DEBUG
 
 	world_max_value = 0;

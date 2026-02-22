@@ -635,7 +635,12 @@ void karte_t::destroy()
 	assert( empty_depot_list );
 	(void)empty_depot_list;
 
-	DBG_MESSAGE("karte_t::destroy()", "world destroyed");
+	DBG_MESSAGE("karte_t::destroy()", "depot list destroyed");
+
+	koords_cleared_this_month.clear();
+	koords_cleared_last_month.clear();
+
+	DBG_MESSAGE("karte_t::destroy()", "koords_cleared.... vectors destroyed");
 
 	// Added by : B.Gabriel
 	route_t::TERM_NODES();
@@ -1548,6 +1553,9 @@ DBG_DEBUG("karte_t::init()","built timeline");
 #else
 	transferring_cargoes = new vector_tpl<transferring_cargo_t>[1];
 #endif
+
+	koords_cleared_this_month = {};
+	koords_cleared_last_month = {};
 }
 
 void karte_t::recalc_passenger_destination_weights()
@@ -4577,7 +4585,7 @@ void karte_t::new_month()
 		if(fab_list.is_contained(fab))
 		{
 			gebaeude_t* gb = fab->get_building();
-			hausbauer_t::remove(get_public_player(), gb, false);
+			hausbauer_t::remove(get_public_player(), gb, false, false);
 		}
 	}
 
@@ -4586,7 +4594,7 @@ void karte_t::new_month()
 			fabrik_t* fab = pick_any_weighted(should_close_factories_this_month);
 			if(fab_list.is_contained(fab)){
 				gebaeude_t* gb = fab->get_building();
-				hausbauer_t::remove(get_public_player(), gb, false);
+				hausbauer_t::remove(get_public_player(), gb, false, false);
 			}
 		}
 	}
@@ -4697,6 +4705,9 @@ void karte_t::new_month()
 			substation->check_industry_connexion();
 		}
 	}
+
+	koords_cleared_last_month = koords_cleared_this_month;
+	koords_cleared_this_month.clear();
 
 	recalc_average_speed(false);
 	INT_CHECK("simworld 1921");
@@ -8983,7 +8994,10 @@ bool karte_t::load(const char *filename)
 		}
 		else {
 			step_mode = NORMAL;
-		}
+			// TODOMATT: The relocation feature is currently neither network-safe nor
+			// saved, so if loading a savegame we need to initialize the clear lists here.
+			koords_cleared_this_month = {};
+			koords_cleared_last_month = {};		}
 
 		ok = true;
 		file.close();
@@ -11915,6 +11929,9 @@ bool karte_t::is_forge_cost_reduced(waytype_t waytype, koord3d position)
 sint64 karte_t::calc_monthly_job_demand() const
 {
 	sint64 value = (get_finance_history_month(0, karte_t::WORLD_CITIZENS) * get_settings().get_commuting_trip_chance_percent()) / get_settings().get_passenger_trips_per_month_hundredths();
+// #ifdef DEBUG
+// 	dbg->warning("karte_t::calc_monthly_job_demand()", "Monthly job demand is %i based on %i WORLD_CITIZENS, %u commuting trip chance and %u passenger_trips_per_month_hundredths", value, get_finance_history_month(0, karte_t::WORLD_CITIZENS), get_settings().get_commuting_trip_chance_percent(), get_settings().get_passenger_trips_per_month_hundredths());
+// #endif
 	return value;
 }
 

@@ -59,6 +59,7 @@ const char *citylist_frame_t::display_mode_text[citylist_stats_t::CITYLIST_MODES
 	"Products"
 #ifdef DEBUG
 	, "DBG_demands"
+	, "DBG_relocation"
 #endif // DEBUG
 };
 

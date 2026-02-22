@@ -131,8 +131,9 @@ public:
 	 * Removes an arbitrary building.
 	 * It will also take care of factories and foundations.
 	 * @param player the player wanting to remove the building.
+	 * @param relocate Set to try to relocate the inhabitants & jobs to a new citybuilding
 	 */
-	static void remove(player_t *player, const gebaeude_t *gb, bool map_generation);
+	static void remove(player_t *player, const gebaeude_t *gb, bool map_generation, bool relocate);
 
 	/**
 	 * Main function to build all non-traffic buildings, including factories.

@@ -309,7 +309,7 @@ DBG_MESSAGE("haltestelle_t::remove()","removing segment from %d,%d,%d", pos.x, p
 				halt->remove_control_tower();
 				halt->recalc_status();
 			}
-			hausbauer_t::remove( player, gb, false );
+			hausbauer_t::remove( player, gb, false, false);
 			parapet_t::unhide_all(pos);
 			bd = NULL;	// no need to recalc image
 			// removing the building could have destroyed this halt already

@@ -775,7 +775,7 @@ void player_t::complete_liquidation()
 								}
 								break;
 							case obj_t::gebaeude:
-								hausbauer_t::remove( this, (gebaeude_t *)obj, false );
+								hausbauer_t::remove( this, (gebaeude_t *)obj, false, false);
 								gr = plan->get_boden_bei(b); // fundament has now been replaced by normal ground
 								break;
 							case obj_t::way:
@@ -1471,7 +1471,7 @@ void player_t::take_over(player_t* target_player)
 							gebaeude_t* gb = (gebaeude_t*)obj;
 							if (gb->is_headquarter())
 							{
-								hausbauer_t::remove(target_player, gb, false);
+								hausbauer_t::remove(target_player, gb, false, false);
 							}
 							else
 							{

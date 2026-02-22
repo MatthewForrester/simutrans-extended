@@ -356,6 +356,8 @@ static sint16 edge_avoidance = 8;
 static uint32 min_building_density = 25;
 
 // the following are the scores for the different building types
+// Some paksets set these in cityrules.tab in order to control the map-wide balance between the
+// building types, and therefore also between jobs and workers. E.g. see https://github.com/jamespetts/simutrans-pak128.britain/commit/eeb5184cd924c32caf369a4747fa448866e5cdb7
 static sint16 ind_start_score =   0;
 static sint16 com_start_score = -10;
 static sint16 res_start_score =   0;
@@ -1640,7 +1642,7 @@ stadt_t::~stadt_t()
 				}
 				else {
 					gb->set_stadt( this );
-					hausbauer_t::remove(welt->get_public_player(), gb, false);
+					hausbauer_t::remove(welt->get_public_player(), gb, false, false);
 				}
 			}
 			// avoid the bookkeeping if world geets destroyed
@@ -1755,6 +1757,9 @@ stadt_t::stadt_t(player_t* player, koord pos, sint32 citizens) :
 	unsupplied_city_growth = 0;
 	allow_citygrowth = true;
 
+	relocated_adjusted_population = 0;
+	relocated_adjusted_jobs = 0;
+
 	// only build any houses if townhall is already there
 	// city should be deleted if it has no buildings
 	if (!buildings.empty()) {
@@ -1785,6 +1790,10 @@ stadt_t::stadt_t(loadsave_t* file) :
 	has_townhall = false;
 
 	unsupplied_city_growth = 0;
+
+	relocated_adjusted_population = 0;
+	relocated_adjusted_jobs = 0;
+
 	stadtinfo_options = 3;
 
 	// These things are not yet saved as part of the city's history,
@@ -2648,6 +2657,11 @@ void stadt_t::step(uint32 delta_t)
 	// is it time for the next step?
 	next_growth_step += delta_t;
 
+	if( !env_t::networkmode && ( ( relocated_adjusted_population > 0 ) || ( relocated_adjusted_jobs > 0 ) ) ) {
+		dbg->warning("stadt_t::step()", "%s attempting to relocate %i people and/or %i jobs", this->get_name(), relocated_adjusted_population, relocated_adjusted_jobs );
+		build(false, false, true);
+	}
+
 	while(next_growth_step > stadt_t::city_growth_step)
 	{
 		calc_growth();
@@ -3118,7 +3132,8 @@ void stadt_t::step_grow_city(bool new_town, bool map_generation)
 			int i;
 
 			for (i = 0; i < num_tries && bev * 2 > won + arb + 100; i++) {
-				build(new_town, map_generation);
+				dbg->warning("stadt_t::step_grow_city()", "%s making city growth attempt %i", get_name(), i);
+				build(new_town, map_generation, false);
 			}
 
 			failure = i == num_tries;
@@ -3589,7 +3604,7 @@ void stadt_t::check_bau_spezial(bool new_town)
 							if(gr->get_hoehe()==h  &&  gr->get_grund_hang()==0) {
 								gebaeude_t *gb = gr->find<gebaeude_t>();
 								if (gb) {
-									hausbauer_t::remove(NULL, gb, false);
+									hausbauer_t::remove(NULL, gb, false, false);
 								}
 								if (gr->hat_weg(road_wt)) {
 									continue;
@@ -3714,7 +3729,7 @@ void stadt_t::check_bau_townhall(bool new_town)
 			// remove old townhall
 			if(  gb  ) {
 				DBG_MESSAGE("stadt_t::check_bau_townhall()", "delete townhall at (%s)", pos_alt.get_str());
-				hausbauer_t::remove(NULL, gb, false);
+				hausbauer_t::remove(NULL, gb, false, false);
 			}
 
 			// replace old space by normal houses level 0 (must be 1x1!)
@@ -3727,7 +3742,7 @@ void stadt_t::check_bau_townhall(bool new_town)
 						if (gr  &&  gr->ist_natur() &&  gr->kann_alle_obj_entfernen(NULL) == NULL  &&
 							  (  gr->get_grund_hang() == slope_t::flat  ||  welt->lookup(koord3d(k, welt->max_hgt(k))) == NULL  ) ) {
 							DBG_MESSAGE("stadt_t::check_bau_townhall()", "fill empty spot at (%s)", pos.get_str());
-							build_city_building(pos, new_town, false);
+							build_city_building(pos, new_town, false, false);
 						}
 					}
 				}
@@ -3871,7 +3886,12 @@ void stadt_t::check_bau_factory(bool new_town)
 }
 
 
-// find out, what building matches best
+// This function checks neighbouring tiles in a 5x5 grid and adjusts the scores of the RCI
+// above; the adjustment can be changed in simuconf.tab but at default values ind/res buildings
+// on neighbouring tiles will increase industrial_/residential_suitability. Commercial is more complex.
+// Analysis at https://github.com/MatthewForrester/simutrans-extended/wiki/City-growth-notes#stadt_tbewerte_res_com_ind
+// TODO??: Since we are checking these tiles anyway, could also expand this to prevent building/renovating
+// where players have recently removed buildngs (who wants to live/work near a building site?)
 void stadt_t::bewerte_res_com_ind(const koord pos, int &ind_score, int &com_score, int &res_score)
 {
 	koord k;
@@ -3882,6 +3902,7 @@ void stadt_t::bewerte_res_com_ind(const koord pos, int &ind_score, int &com_scor
 
 	for (k.y = pos.y - 2; k.y <= pos.y + 2; k.y++) {
 		for (k.x = pos.x - 2; k.x <= pos.x + 2; k.x++) {
+
 
 			building_desc_t::btype t = building_desc_t::unknown;
 			if (const grund_t* gr = welt->lookup_kartenboden(k)) {
@@ -4369,7 +4390,7 @@ void stadt_t::get_available_building_size(const koord k, vector_tpl<koord> &size
 }
 
 
-void stadt_t::build_city_building(const koord k, bool new_town, bool map_generation)
+void stadt_t::build_city_building(const koord k, bool new_town, bool map_generation, bool relocation)
 {
 	grund_t* gr = welt->lookup_kartenboden(k);
 	if (!gr)
@@ -4394,17 +4415,28 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 		return;
 	}
 
+	// First calculation of city-wide demand starts here
 	// Divide unemployed by 4, because it counts towards commercial and industrial,
 	// and both of those count 'double' for population relative to residential.
 	int employment_wanted  = get_unemployed() / 4;
 	int housing_wanted = get_homeless();
 
 	int industrial_suitability, commercial_suitability, residential_suitability;
+	// This function checks neighbouring tiles in a 5x5 grid and adjusts the scores of the RCI
+	// above; the adjustment can be changed in simuconf.tab but at default values ind/res buildings
+	// on neighbouring tiles will increase industrial_/residential_suitability. Commercial is more complex.
+	// Analysis at https://github.com/MatthewForrester/simutrans-extended/wiki/City-growth-notes#stadt_tbewerte_res_com_ind
 	bewerte_res_com_ind(k, industrial_suitability, commercial_suitability, residential_suitability );
+	dbg->warning("stadt_t::build_city_building()", "In %s, at %s, the suitability values are are R %i, C %i, I %i", get_name(), k.get_fullstr(), residential_suitability, commercial_suitability, industrial_suitability);
+	
 
-	const int sum_industrial   = industrial_suitability  + employment_wanted;
-	const int sum_commercial = commercial_suitability  + employment_wanted;
-	const int sum_residential   = residential_suitability + housing_wanted;
+	// When relocating, remove the start_score element, because paksets use it to set the map-wide balance
+	// between jobs and workers, but relocation inherently preserves that.
+	const int sum_industrial   = industrial_suitability  + ( relocation ? ( relocated_adjusted_jobs - ind_start_score) : employment_wanted );
+	const int sum_commercial = commercial_suitability  + ( relocation ? ( relocated_adjusted_jobs - com_start_score) : employment_wanted );
+	const int sum_residential   = residential_suitability + ( relocation ? ( relocated_adjusted_population - res_start_score) : housing_wanted);
+	dbg->warning("stadt_t::build_city_building()", "In %s, at %s, the desirability sums are R %i, C %i, I %i", get_name(), k.get_fullstr(), sum_residential, sum_commercial, sum_industrial);
+	// First calculation of city-wide demand ends here, but the shortage system is later
 
 	// does the timeline allow this building?
 	const uint16 current_month = welt->get_timeline_year_month();
@@ -4437,6 +4469,8 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 	{
 		job_shortage = true;
 	}
+	dbg->warning("stadt_t::build_city_building()", "In %s, the worker shortage status is %i and the job shortage status is %i", get_name(), worker_shortage, job_shortage);
+	
 
 	// Find a house to build
 	const koord size_single(1,1);
@@ -4446,27 +4480,53 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 	uint32 pier_sub_1_mask=pier_t::get_sub_mask_total(gr);
 	uint32 pier_sub_2_mask=pier_t::get_sub_mask_total(welt->lookup(gr->get_pos()+koord3d(0,0,1)));
 
-	if (!worker_shortage && (sum_commercial > sum_industrial  &&  sum_commercial > sum_residential)) {
-		h = hausbauer_t::get_commercial(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
-		if (h != NULL) {
-			want_to_have = building_desc_t::city_com;
+	if (relocation) {
+		// TODOMATT: Probably need a new flowchart to confirm the logic is right here.
+		// TODOMATTNOW: If sum_commercial = sum_industrial, neither gets built.
+		if ( ( relocated_adjusted_jobs > 0) && (sum_commercial > sum_industrial  &&  sum_commercial > sum_residential) ) {
+			h = hausbauer_t::get_commercial(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
+			if (h != NULL) {
+				want_to_have = building_desc_t::city_com;
+			}
 		}
-	}
 
-	if (!worker_shortage && (h == NULL  &&  sum_industrial > sum_residential  &&  sum_industrial > sum_commercial)) {
-		h = hausbauer_t::get_industrial(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
-		if (h != NULL) {
-			want_to_have = building_desc_t::city_ind;
+		if (  h == NULL && (relocated_adjusted_jobs > 0) && (sum_industrial > sum_residential  &&  sum_industrial > sum_commercial) ) {
+			h = hausbauer_t::get_industrial(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
+			if (h != NULL) {
+				want_to_have = building_desc_t::city_ind;
+			}
 		}
-	}
 
-	if (h == NULL  &&  ((sum_residential > sum_industrial  &&  sum_residential > sum_commercial) || worker_shortage)) {
-		if (!job_shortage || worker_shortage)
-		{
+		if ( h == NULL && (relocated_adjusted_population > 0) && (sum_residential > sum_industrial  &&  sum_residential > sum_commercial) ) {
 			h = hausbauer_t::get_residential(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
+			if (h != NULL) {
+				want_to_have = building_desc_t::city_res;
+			}
 		}
-		if (h != NULL) {
-			want_to_have = building_desc_t::city_res;
+	}
+	else {
+		if (!worker_shortage && (sum_commercial > sum_industrial  &&  sum_commercial > sum_residential)) {
+			h = hausbauer_t::get_commercial(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
+			if (h != NULL) {
+				want_to_have = building_desc_t::city_com;
+			}
+		}
+
+		if (!worker_shortage && (h == NULL  &&  sum_industrial > sum_residential  &&  sum_industrial > sum_commercial)) {
+			h = hausbauer_t::get_industrial(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
+			if (h != NULL) {
+				want_to_have = building_desc_t::city_ind;
+			}
+		}
+
+		if (h == NULL  &&  ((sum_residential > sum_industrial  &&  sum_residential > sum_commercial) || worker_shortage)) {
+			if (!job_shortage || worker_shortage)
+			{
+				h = hausbauer_t::get_residential(0, size_single, current_month, cl, region, new_town, neighbor_building_clusters,pier_sub_1_mask,pier_sub_2_mask);
+			}
+			if (h != NULL) {
+				want_to_have = building_desc_t::city_res;
+			}
 		}
 	}
 
@@ -4506,9 +4566,18 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 		reset_city_borders();
 
 		switch(want_to_have) {
-			case building_desc_t::city_res:   won += h->get_level() * 10; break;
-			case building_desc_t::city_com:   arb +=  h->get_level() * 20; break;
-			case building_desc_t::city_ind: arb +=  h->get_level() * 20; break;
+			case building_desc_t::city_res:   
+				won += h->get_level() * 10; 
+				if (relocation) { relocated_adjusted_population -= gb->get_adjusted_population(); }
+				break;
+			case building_desc_t::city_com:   
+				arb +=  h->get_level() * 20; 
+				if (relocation) { relocated_adjusted_jobs -= gb->get_adjusted_jobs(); }
+				break;
+			case building_desc_t::city_ind: 
+				arb +=  h->get_level() * 20; 
+				if (relocation) { relocated_adjusted_jobs -= gb->get_adjusted_jobs(); }
+				break;
 			default: break;
 		}
 	}
@@ -4516,7 +4585,7 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 
 //
 
-bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
+bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation, bool relocation)
 {
 	if (!gb->is_city_building()) {
 		return false; // only renovate res, com, ind
@@ -4525,7 +4594,7 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 	// Now we are sure that this is a city building
 	const koord k = gb->get_pos().get_2d();
 
-	//
+	// Calculation of city-wide demand starts here
 	// Divide unemployed by 4, because it counts towards commercial and industrial,
 	// and both of those count 'double' for population relative to residential.
 	const int employment_wanted  = get_unemployed() / 4;
@@ -4535,11 +4604,18 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 	const int housing_wanted = get_homeless();
 
 	int industrial_suitability, commercial_suitability, residential_suitability;
+	// This function checks neighbouring tiles in a 5x5 grid and adjusts the scores of the RCI
+	// above; the adjustment can be changed in simuconf.tab but at default values ind/res buildings
+	// on neighbouring tiles will increase industrial_/residential_suitability. Commercial is more complex.
+	// Analysis at https://github.com/MatthewForrester/simutrans-extended/wiki/City-growth-notes#stadt_tbewerte_res_com_ind
 	bewerte_res_com_ind(k, industrial_suitability, commercial_suitability, residential_suitability );
-
-	const int sum_industrial   = industrial_suitability  + employment_wanted;
-	const int sum_commercial = commercial_suitability  + employment_wanted;
-	const int sum_residential   = residential_suitability + housing_wanted;
+	dbg->warning("stadt_t::renovate_city_building()", "In %s, at %s, the suitability values are are R %i, C %i, I %i", get_name(), k.get_fullstr(), residential_suitability, commercial_suitability, industrial_suitability);
+	
+	const int sum_industrial   = industrial_suitability  + ( relocation ? (relocated_adjusted_jobs - ind_start_score) : employment_wanted );
+	const int sum_commercial = commercial_suitability  + ( relocation ? (relocated_adjusted_jobs - com_start_score) : employment_wanted );
+	const int sum_residential   = residential_suitability + ( relocation ? (relocated_adjusted_population - res_start_score) : housing_wanted);
+	dbg->warning("stadt_t::renovate_city_building()", "In %s, at %s, the desirability sums are R %i, C %i, I %i", get_name(), k.get_fullstr(), sum_residential, sum_commercial, sum_industrial);
+	// First calculation of city-wide demand ends here
 
 	// does the timeline allow this building?
 	const uint16 current_month = welt->get_timeline_year_month();
@@ -4595,58 +4671,114 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 	// try to build
 	const building_desc_t* h = NULL;
 	koord selected_dim;
-	if (sum_commercial > sum_industrial && sum_commercial > sum_residential) {
-		// we must check, if we can really update to higher level ...
-		for(uint8 i=0; i<available_sizes.get_count(); i++) {
-			const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
-			h = hausbauer_t::get_commercial(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
-			if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
-				want_to_have = building_desc_t::city_com;
-				sum = sum_commercial;
-				selected_dim = dimension;
-				break;
+	if (relocation)
+	{
+		if  ( ( relocated_adjusted_jobs > 0) && (sum_commercial > sum_industrial && sum_commercial > sum_residential) ) {
+			// we must check, if we can really update to higher level ...
+			for(uint8 i=0; i<available_sizes.get_count(); i++) {
+				const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
+				h = hausbauer_t::get_commercial(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
+				if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
+					want_to_have = building_desc_t::city_com;
+					sum = sum_commercial;
+					selected_dim = dimension;
+					break;
+				}
 			}
 		}
-	}
-	// check for industry, also if we wanted com, but there was no com good enough ...
-	if(    (sum_industrial > sum_commercial  &&  sum_industrial > sum_residential) ||
-	       (sum_commercial > sum_residential  &&  want_to_have == building_desc_t::unknown)  ) {
-		// we must check, if we can really update to higher level ...
-		for(uint8 i=0; i<available_sizes.get_count(); i++) {
-			const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
-			h = hausbauer_t::get_industrial(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
-			if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
-				want_to_have = building_desc_t::city_ind;
-				sum = sum_industrial;
-				selected_dim = dimension;
-				break;
+				// if there was not suitable COM or the area wasn't suitable for it, try IND ...
+		if(  h == NULL && (relocated_adjusted_jobs > 0)  && ( (sum_industrial > sum_commercial  &&  sum_industrial > sum_residential) ||
+			(sum_commercial > sum_residential  &&  want_to_have == building_desc_t::unknown) ) ) {
+			// we must check, if we can really update to higher level ...
+			for(uint8 i=0; i<available_sizes.get_count(); i++) {
+				const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
+				h = hausbauer_t::get_industrial(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
+				if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
+					want_to_have = building_desc_t::city_ind;
+					sum = sum_industrial;
+					selected_dim = dimension;
+					break;
+				}
 			}
 		}
-	}
-	// check for residence
-	// (sum_residential > sum_industrial  &&  sum_residential > sum_commercial
-	if (  want_to_have == building_desc_t::unknown ) {
-		// we must check, if we can really update to higher level ...
-		bool found = false;
-		for(uint8 i=0; i<available_sizes.get_count(); i++) {
-			const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
-			h = hausbauer_t::get_residential(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
-			if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
-				want_to_have = building_desc_t::city_res;
-				sum = sum_residential;
-				selected_dim = dimension;
-				found = true;
-				break;
+
+		// check for residence
+		if (  want_to_have == building_desc_t::unknown && (relocated_adjusted_population > 0) && (sum_residential > sum_industrial  &&  sum_residential > sum_commercial) ) {
+			// we must check, if we can really update to higher level ...
+			bool found = false;
+			for(uint8 i=0; i<available_sizes.get_count(); i++) {
+				const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
+				h = hausbauer_t::get_residential(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
+				if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
+					want_to_have = building_desc_t::city_res;
+					sum = sum_residential;
+					selected_dim = dimension;
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				h = NULL;
+			}
+		}		
+		
+	} else {
+		if (sum_commercial > sum_industrial && sum_commercial > sum_residential) {
+			// we must check, if we can really update to higher level ...
+			for(uint8 i=0; i<available_sizes.get_count(); i++) {
+				const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
+				h = hausbauer_t::get_commercial(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
+				if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
+					want_to_have = building_desc_t::city_com;
+					sum = sum_commercial;
+					selected_dim = dimension;
+					break;
+				}
 			}
 		}
-		if(!found) {
-			h = NULL;
+		// check for industry, also if we wanted com, but there was no com good enough ...
+		if(    (sum_industrial > sum_commercial  &&  sum_industrial > sum_residential) ||
+			(sum_commercial > sum_residential  &&  want_to_have == building_desc_t::unknown)  ) {
+			// we must check, if we can really update to higher level ...
+			for(uint8 i=0; i<available_sizes.get_count(); i++) {
+				const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
+				h = hausbauer_t::get_industrial(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
+				if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
+					want_to_have = building_desc_t::city_ind;
+					sum = sum_industrial;
+					selected_dim = dimension;
+					break;
+				}
+			}
 		}
+		// check for residence
+		// (sum_residential > sum_industrial  &&  sum_residential > sum_commercial
+		if (  want_to_have == building_desc_t::unknown ) {
+			// we must check, if we can really update to higher level ...
+			bool found = false;
+			for(uint8 i=0; i<available_sizes.get_count(); i++) {
+				const koord dimension = available_sizes[(i+size_offset)%available_sizes.get_count()];
+				h = hausbauer_t::get_residential(k, dimension, current_month, cl, region, false, neighbor_building_clusters);
+				if(  h != NULL  &&  (max_level == 0 || h->get_level() <= max_level)  ) {
+					want_to_have = building_desc_t::city_res;
+					sum = sum_residential;
+					selected_dim = dimension;
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				h = NULL;
+			}
+		}
+
 	}
 
 	if (h == NULL) {
 		// Found no suitable building.  Return!
 		return false;
+		dbg->warning("stadt_t::renovate_city_building()", "No suitable building could be found for the renovation in %s.", get_name());
+
 	}
 
 	vector_tpl<koord> surrounding_pos;
@@ -4673,7 +4805,7 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 
 	// good enough to renovate, and we found a building?
 	if(  sum > 0  &&  h != NULL  ) {
-//		DBG_MESSAGE("stadt_t::renovate_city_building()", "renovation at %i,%i (%i level) of typ %i to typ %i with desire %i", k.x, k.y, alt_typ, want_to_have, sum);
+		dbg->warning("stadt_t::renovate_city_building()", "renovation at %i,%i (%i level) of type %i to type %i with desire %i", k.x, k.y, h->get_level(), gb->get_tile()->get_desc()->get_type(), want_to_have, sum);
 
 		for (uint16 i=0; i<surrounding_pos.get_count(); i++) {
 			// Neighbors goes through this in a specific order:
@@ -4742,7 +4874,7 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 					rb.pos = bldg->get_pos();
 					rb.layout = bldg->get_tile()->get_layout();
 					removed_buildings.append(rb);
-					hausbauer_t::remove(NULL, bldg, map_generation);
+					hausbauer_t::remove(NULL, bldg, map_generation, false);
 				}
 			}
 		}
@@ -4754,6 +4886,10 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 
 		// Check that all tiles are same height. If it is different, we remove that.
 		gebaeude_t* checked_gb = check_tiles_height(new_gb, k, layout, map_generation);
+		if (checked_gb)
+		{
+				dbg->warning("stadt_t::renovate_city_building()", "The new building is %s", new_gb->get_name());
+		}
 		if(!checked_gb) {
 			// height was different. Let's recover.
 			for(uint8 j=0; j<removed_buildings.get_count(); j++) {
@@ -4765,7 +4901,7 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 			return false;
 		}
 
-		// culculation of population
+		// calculation of population
 		for(uint8 j=0; j<removed_buildings.get_count(); j++) {
 			const uint8 level = removed_buildings[j].desc->get_level();
 			switch(removed_buildings[j].desc->get_type()) {
@@ -4776,9 +4912,20 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation)
 			}
 		}
 		switch(want_to_have) {
-			case building_desc_t::city_res:   won += h->get_level() * 10; break;
-			case building_desc_t::city_com:   arb +=  h->get_level() * 20; break;
-			case building_desc_t::city_ind: arb +=  h->get_level() * 20; break;
+			case building_desc_t::city_res:   
+				won += h->get_level() * 10;
+				// TODOMATT: We are booking all the pops/jobs of the renovated building, not just
+				// the difference. Need to fix this. 
+				if (relocation) { relocated_adjusted_population -= new_gb->get_adjusted_population(); }
+				break;
+			case building_desc_t::city_com:   
+				arb +=  h->get_level() * 20; 
+				if (relocation) { relocated_adjusted_jobs -= new_gb->get_adjusted_jobs(); }
+				break;
+			case building_desc_t::city_ind: 
+				arb +=  h->get_level() * 20; 
+				if (relocation) { relocated_adjusted_jobs -= new_gb->get_adjusted_jobs(); }
+				break;
 			default: break;
 		}
 		checked_gb->set_stadt(this);
@@ -4830,7 +4977,7 @@ gebaeude_t* stadt_t::check_tiles_height(gebaeude_t* building, koord pos, uint8 l
 				if(!bldg->is_city_building()) {
 					dbg->error("stadt_t::check_height_and_rebuild()", "building is not a city building! pos:%s", (pos+koord(x,y)).get_str());
 				}
-				hausbauer_t::remove(NULL, bldg, map_generation);
+				hausbauer_t::remove(NULL, bldg, map_generation, false);
 			}
 		}
 	}
@@ -4989,6 +5136,7 @@ void stadt_t::generate_private_cars(koord pos, uint32 journey_tenths_of_minutes,
  * Build a bridge for the city
  * bd == startirng ground
  * zv == direction of construction (must be N, S, E, or W)
+ * TODOMATT This constructs houses, so it might need a relocation parameter.
  */
 bool stadt_t::build_bridge(grund_t* bd, ribi_t::ribi direction, bool map_generation) {
 	koord3d k3d = bd->get_pos();
@@ -5131,6 +5279,8 @@ bool stadt_t::build_bridge(grund_t* bd, ribi_t::ribi direction, bool map_generat
 /**
  * baut ein Stueck Strasse
  * @param k Bauposition
+ * TODOMATT This might construct buildings or call build_bridge(), so check if it needs a relocation
+ * parameter. Also need to make sure cleared roads are added to karte_t::koords_cleared_this_month.
  */
 bool stadt_t::build_road(const koord k, player_t* player_, bool forced, bool map_generation)
 {
@@ -5461,12 +5611,13 @@ bool stadt_t::build_road(const koord k, player_t* player_, bool forced, bool map
 
 
 /**
- * Enlarge a city by building another building or extending a road.
+ * Enlarge a city by building/renovating another building or extending a road.
+ * @param relocation Relocating pops or jobs after player removed buildings
  */
-void stadt_t::build(bool new_town, bool map_generation)
+void stadt_t::build(bool new_town, bool map_generation, bool relocation)
 {
 	settings_t const& s = welt->get_settings();
-	if(s.get_quick_city_growth())
+	if(s.get_quick_city_growth() && !relocation)
 	{
 		// Old system (from Standard) - faster but less accurate.
 
@@ -5500,7 +5651,7 @@ void stadt_t::build(bool new_town, bool map_generation)
 			}
 			// one rule applied?
 			if(  best_haus.found()  ) {
-				build_city_building(best_haus.get_pos(), new_town, map_generation);
+				build_city_building(best_haus.get_pos(), new_town, map_generation, false);
 				INT_CHECK("simcity 5112");
 				return;
 			}
@@ -5536,7 +5687,8 @@ void stadt_t::build(bool new_town, bool map_generation)
 	uint32 was_renovated=0;
 	uint32 try_nr = 0;
 	if (  !buildings.empty()  &&  simrand(100, "void stadt_t::build") <= renovation_percentage  ) {
-		while (was_renovated < renovations_count && try_nr++ < renovations_try) { // trial and errors parameters
+		while ( ( was_renovated < renovations_count && try_nr++ < renovations_try) // trial and errors parameters
+				&& (!relocation || ( relocated_adjusted_population > 0) || ( relocated_adjusted_jobs > 0) ) ) {  // pops/jobs can relocate to renovated buildings
 			// try to find a non-player owned building
 			gebaeude_t* const gb = pick_any(buildings);
 
@@ -5557,8 +5709,11 @@ void stadt_t::build(bool new_town, bool map_generation)
 			// the smaller the chance of successful renovation
 			const uint32 distance_rate = renovation_distance_chance == 1 ? 100 - (dist * 100) / maxdist : 100;
 			if(  player_t::check_owner(gb->get_owner(),NULL)  && simrand(100, "void stadt_t::build") < distance_rate) {
-				if(renovate_city_building(gb, map_generation)) {
+				if(renovate_city_building(gb, map_generation, relocation)) {
 					was_renovated++;
+					// TODOMATT: Maybe get buildings' Built in.... dates to update as a bonus.
+					// TODOMATT: The getter is gebaeude_t::get_purchase_time(). There's no setter
+					// TODOMATT: so you'd need to make one using welt->get_current_month().
 				}
 			}
 		}
@@ -5576,9 +5731,19 @@ void stadt_t::build(bool new_town, bool map_generation)
 
 		// firstly, determine all potential candidate coordinates
 		vector_tpl<koord> candidates( (ur.x - lo.x + 1) * (ur.y - lo.y + 1) );
+		// includes checking if this tile has recently been cleared by a player
+		const vector_tpl<koord> kctm = welt->get_koords_cleared_this_month();
+		const vector_tpl<koord> kclm = welt->get_koords_cleared_last_month();
 		for(  sint16 j=lo.y;  j<=ur.y;  ++j  ) {
 			for(  sint16 i=lo.x;  i<=ur.x;  ++i  ) {
 				const koord k(i, j);
+
+				// do not build on tiles recently cleared by players
+				if ( kctm.is_contained(k) || kclm.is_contained(k) )
+				{
+					continue;
+				}				
+
 				// do not build on any border tile
 				if(  !welt->is_within_limits( k+koord(1,1) )  ||  k.x<=0  ||  k.y<=0  ) {
 					continue;
@@ -5624,7 +5789,7 @@ void stadt_t::build(bool new_town, bool map_generation)
 			}
 			// one rule applied?
 			if (best_haus.found()) {
-				build_city_building(best_haus.get_pos(), new_town, map_generation);
+				build_city_building(best_haus.get_pos(), new_town, map_generation, relocation);
 				INT_CHECK("simcity 5192");
 				return;
 			}

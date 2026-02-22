@@ -13,6 +13,7 @@
 #include "../boden/wasser.h"
 #include "../boden/fundament.h"
 
+#include "../dataobj/environment.h"
 #include "../dataobj/scenario.h"
 
 #include "../obj/leitung2.h"
@@ -347,7 +348,7 @@ void hausbauer_t::new_world()
 }
 
 
-void hausbauer_t::remove( player_t *player, const gebaeude_t *gb, bool map_generation ) //gebaeude = "building" (Babelfish)
+void hausbauer_t::remove( player_t *player, const gebaeude_t *gb, bool map_generation, bool relocate ) //gebaeude = "building" (Babelfish)
 {
 	const building_tile_desc_t *tile  = gb->get_tile();
 	const building_desc_t *bdsc = tile->get_desc();
@@ -364,6 +365,13 @@ void hausbauer_t::remove( player_t *player, const gebaeude_t *gb, bool map_gener
 	}
 	if(tile->get_desc()->get_type()==building_desc_t::monument) {
 		unbuilt_monuments.append_unique(tile->get_desc());
+	}
+
+	// If relocating in a city, add to city's relocation pops/jobs
+	if (relocate && city) {
+		city->add_to_relocated_adjusted_population(gb->get_adjusted_population());
+		city->add_to_relocated_adjusted_jobs(gb->get_adjusted_jobs());
+		dbg->warning("hausbauer::remove()", "%i people and %i jobs are looking for a new home in %s", gb->get_adjusted_population(), gb->get_adjusted_jobs(), city->get_name());
 	}
 
 	// then remove factory
@@ -479,6 +487,16 @@ void hausbauer_t::remove( player_t *player, const gebaeude_t *gb, bool map_gener
 					gb_part->cleanup( player );
 					if (city)
 					{
+						// The koords of removed buildings are stored here to reduce the chances of
+						// the city rebuilding on a tile that a player has recently cleared.
+						// TODOMATT Not saved and not network safe
+						if (relocate && !env_t::networkmode)
+						{
+							koord koord_being_removed = k + (pos.get_2d() );
+							welt->add_to_koords_cleared( koord_being_removed );
+							dbg->warning("hausbauer_t::remove", "Added (%s) to list of cleared koords", koord_being_removed.get_str() );
+						}
+						
 						city->remove_gebaeude_from_stadt(gb_part, map_generation, k==koord(0,0));
 						gb_part->set_stadt(NULL);
 					}

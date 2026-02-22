@@ -2518,8 +2518,30 @@ private:
 	void refresh_private_car_routes();
 
 	static void clear_private_car_routes() ;
-};
 
+	/**
+	 * A vector of tiles (in 2D co-ordinates) that were recently manually removed by players.
+	 * Used to prevent the city immediately building new citybuildings or roads on those tiles.
+	 * 	 */	
+	vector_tpl<koord> koords_cleared_this_month;
+	vector_tpl<koord> koords_cleared_last_month;
+
+public:
+
+	/**
+	 * @brief Adds a single tile's co-ordinates to the koords_cleared system
+	 * 
+	 * @param building_being_removed 
+	 */
+	void add_to_koords_cleared(koord koord_being_removed) { koords_cleared_this_month.append_unique(koord_being_removed); };
+
+	/**
+	 * @brief Gets the lists of tiles (in 2D co-ordinates) that were recently manually removed by players.
+	 */
+	vector_tpl<koord> get_koords_cleared_this_month() const { return koords_cleared_this_month; };
+	vector_tpl<koord> get_koords_cleared_last_month() const { return koords_cleared_last_month; };
+
+};
 
 /**
  * Returns pointer to single instance of the world.
