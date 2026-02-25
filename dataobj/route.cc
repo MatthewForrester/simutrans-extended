@@ -1362,14 +1362,14 @@ route_t::route_result_t route_t::intern_calc_route(karte_t *welt, const koord3d 
 		// reached => construct route
 		route.store_at( tmp->count, tmp->gr->get_pos() );
 		while(tmp != NULL) {
-#ifdef DEBUG
+// #ifdef DEBUG
 			// debug heuristics
-			if (tmp->f > best) {
-				uint32 dist = calc_distance( tmp->gr->get_pos(), ziel);
-				dbg->warning("route_t::intern_calc_route()", "Problem with heuristic:  from %s to %s at %s, best = %d, cost = %d, heur = %d, dist = %d, turns = %d",
-					     start.get_str(), ziel.get_fullstr(), tmp->gr->get_pos().get_2d().get_str(), best, tmp->g, tmp->f, dist, tmp->f - tmp->g - dist);
-			}
-#endif
+			// if (tmp->f > best) {
+				// uint32 dist = calc_distance( tmp->gr->get_pos(), ziel);
+				// dbg->warning("route_t::intern_calc_route()", "Problem with heuristic:  from %s to %s at %s, best = %d, cost = %d, heur = %d, dist = %d, turns = %d",
+				//	     start.get_str(), ziel.get_fullstr(), tmp->gr->get_pos().get_2d().get_str(), best, tmp->g, tmp->f, dist, tmp->f - tmp->g - dist);
+			// }
+// #endif
 			route[ tmp->count ] = tmp->gr->get_pos();
 			tmp = tmp->parent;
 		}

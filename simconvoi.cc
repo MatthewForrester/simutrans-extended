@@ -6077,16 +6077,16 @@ station_tile_search_ready: ;
 	}
 
 	const sint64 now = welt->get_ticks();
-	if(arrival_time > now || arrival_time == WAIT_INFINITE)
-	{
-		// This is a workaround for an odd bug the origin of which is as yet unclear.
-		go_on_ticks = WAIT_INFINITE;
-		arrival_time = now;
-		if (arrival_time < WAIT_INFINITE)
-		{
-			dbg->warning("void convoi_t::hat_gehalten(halthandle_t halt)", "Arrival time in the future for %s at %s", get_name(), halt->get_name());
-		}
-	}
+	// if(arrival_time > now || arrival_time == WAIT_INFINITE)
+	// {
+	//	This is a workaround for an odd bug the origin of which is as yet unclear.
+	//	go_on_ticks = WAIT_INFINITE;
+	//	arrival_time = now;
+	//	if (arrival_time < WAIT_INFINITE)
+	//	{
+	//	dbg->warning("void convoi_t::hat_gehalten(halthandle_t halt)", "Arrival time in the future for %s at %s", get_name(), halt->get_name());
+	//	}
+	// }
 	const sint64 reversing_time = schedule->get_current_entry().reverse > 0 ? (sint64)calc_reverse_delay() : 0ll;
 	bool running_late = false;
 	sint64 go_on_ticks_waiting = WAIT_INFINITE;
