@@ -206,7 +206,7 @@ private:
 	*/
 	sint32 relocated_adjusted_population;
 
-	/* Represents the jobs of buildings that were manually removed by players and will be 
+	/* Represents the jobs of buildings that were manually removed by players and will be
 	*  replaced by new residential commercia/industrial citybuildings (TODO factories).
 	*  May be negative.
 	*/
@@ -219,7 +219,7 @@ public:
 	sint32 get_relocated_adjusted_population() { return relocated_adjusted_population; };
 	sint32 get_relocated_adjusted_jobs() { return relocated_adjusted_jobs; };
 
-private: 
+private:
 	/**
 	* City history
 	* Current month stats are not appropiate to determine satisfaction for growth.
@@ -535,7 +535,7 @@ public:
 	uint32 get_visitor_demand_by_class(uint8 p_class);
 	sint32 get_unemployed() const { return bev - arb; }
 	sint32 get_homeless()   const { return bev - won; }
-	
+
 
 	const char *get_name() const { return name; }
 	void set_name( const char *name );

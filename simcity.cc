@@ -4428,7 +4428,7 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 	// Analysis at https://github.com/MatthewForrester/simutrans-extended/wiki/City-growth-notes#stadt_tbewerte_res_com_ind
 	bewerte_res_com_ind(k, industrial_suitability, commercial_suitability, residential_suitability );
 	dbg->warning("stadt_t::build_city_building()", "In %s, at %s, the suitability values are are R %i, C %i, I %i", get_name(), k.get_fullstr(), residential_suitability, commercial_suitability, industrial_suitability);
-	
+
 
 	// When relocating, remove the start_score element, because paksets use it to set the map-wide balance
 	// between jobs and workers, but relocation inherently preserves that.
@@ -4470,7 +4470,7 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 		job_shortage = true;
 	}
 	dbg->warning("stadt_t::build_city_building()", "In %s, the worker shortage status is %i and the job shortage status is %i", get_name(), worker_shortage, job_shortage);
-	
+
 
 	// Find a house to build
 	const koord size_single(1,1);
@@ -4566,16 +4566,16 @@ void stadt_t::build_city_building(const koord k, bool new_town, bool map_generat
 		reset_city_borders();
 
 		switch(want_to_have) {
-			case building_desc_t::city_res:   
-				won += h->get_level() * 10; 
+			case building_desc_t::city_res:
+				won += h->get_level() * 10;
 				if (relocation) { relocated_adjusted_population -= gb->get_adjusted_population(); }
 				break;
-			case building_desc_t::city_com:   
-				arb +=  h->get_level() * 20; 
+			case building_desc_t::city_com:
+				arb +=  h->get_level() * 20;
 				if (relocation) { relocated_adjusted_jobs -= gb->get_adjusted_jobs(); }
 				break;
-			case building_desc_t::city_ind: 
-				arb +=  h->get_level() * 20; 
+			case building_desc_t::city_ind:
+				arb +=  h->get_level() * 20;
 				if (relocation) { relocated_adjusted_jobs -= gb->get_adjusted_jobs(); }
 				break;
 			default: break;
@@ -4610,7 +4610,7 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation, bool r
 	// Analysis at https://github.com/MatthewForrester/simutrans-extended/wiki/City-growth-notes#stadt_tbewerte_res_com_ind
 	bewerte_res_com_ind(k, industrial_suitability, commercial_suitability, residential_suitability );
 	dbg->warning("stadt_t::renovate_city_building()", "In %s, at %s, the suitability values are are R %i, C %i, I %i", get_name(), k.get_fullstr(), residential_suitability, commercial_suitability, industrial_suitability);
-	
+
 	const int sum_industrial   = industrial_suitability  + ( relocation ? (relocated_adjusted_jobs - ind_start_score) : employment_wanted );
 	const int sum_commercial = commercial_suitability  + ( relocation ? (relocated_adjusted_jobs - com_start_score) : employment_wanted );
 	const int sum_residential   = residential_suitability + ( relocation ? (relocated_adjusted_population - res_start_score) : housing_wanted);
@@ -4720,8 +4720,8 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation, bool r
 			if(!found) {
 				h = NULL;
 			}
-		}		
-		
+		}
+
 	} else {
 		if (sum_commercial > sum_industrial && sum_commercial > sum_residential) {
 			// we must check, if we can really update to higher level ...
@@ -4912,18 +4912,18 @@ bool stadt_t::renovate_city_building(gebaeude_t* gb, bool map_generation, bool r
 			}
 		}
 		switch(want_to_have) {
-			case building_desc_t::city_res:   
+			case building_desc_t::city_res:
 				won += h->get_level() * 10;
 				// TODOMATT: We are booking all the pops/jobs of the renovated building, not just
-				// the difference. Need to fix this. 
+				// the difference. Need to fix this.
 				if (relocation) { relocated_adjusted_population -= new_gb->get_adjusted_population(); }
 				break;
-			case building_desc_t::city_com:   
-				arb +=  h->get_level() * 20; 
+			case building_desc_t::city_com:
+				arb +=  h->get_level() * 20;
 				if (relocation) { relocated_adjusted_jobs -= new_gb->get_adjusted_jobs(); }
 				break;
-			case building_desc_t::city_ind: 
-				arb +=  h->get_level() * 20; 
+			case building_desc_t::city_ind:
+				arb +=  h->get_level() * 20;
 				if (relocation) { relocated_adjusted_jobs -= new_gb->get_adjusted_jobs(); }
 				break;
 			default: break;
@@ -5742,7 +5742,7 @@ void stadt_t::build(bool new_town, bool map_generation, bool relocation)
 				if ( kctm.is_contained(k) || kclm.is_contained(k) )
 				{
 					continue;
-				}				
+				}
 
 				// do not build on any border tile
 				if(  !welt->is_within_limits( k+koord(1,1) )  ||  k.x<=0  ||  k.y<=0  ) {

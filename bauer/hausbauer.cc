@@ -496,7 +496,7 @@ void hausbauer_t::remove( player_t *player, const gebaeude_t *gb, bool map_gener
 							welt->add_to_koords_cleared( koord_being_removed );
 							dbg->warning("hausbauer_t::remove", "Added (%s) to list of cleared koords", koord_being_removed.get_str() );
 						}
-						
+
 						city->remove_gebaeude_from_stadt(gb_part, map_generation, k==koord(0,0));
 						gb_part->set_stadt(NULL);
 					}

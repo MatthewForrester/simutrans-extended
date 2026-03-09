@@ -996,7 +996,7 @@ DBG_MESSAGE("tool_remover()", "removing way");
 	{
 		welt->add_to_koords_cleared(pos.get_2d());
 	}
-	
+
 
 	// remove empty tile
 	if(  !gr->ist_karten_boden()  &&  gr->get_top()==0  && (gr->get_typ()!=grund_t::typ::pierdeck || ((pier_deck_t*)gr)->get_is_dummy())) {
